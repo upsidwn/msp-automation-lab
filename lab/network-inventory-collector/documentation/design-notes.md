@@ -66,6 +66,47 @@ regex-parses plain CLI text from four commands instead:
 Fixtures in `tests/fixtures/exos_*.txt` are hand-written to match this
 format exactly, with fake values throughout.
 
+## UniFi Integration API notes
+
+Uses the official **Network Integration API** (`/proxy/network/integration/v1/...`
+on the console itself), not the older unofficial controller API, and not
+Ubiquiti's cloud API (`api.ui.com`) -- staying local keeps this
+consistent with the SSH collectors (no cloud dependency, nothing leaves
+the customer's network). Auth is a static API key generated from the
+console's own UI, sent as an `X-API-KEY` header -- confirmed live, first
+try. No username/password, no session cookies, and critically no
+interaction with cloud-account 2FA at all, since it's a separate
+credential mechanism entirely.
+
+Flow: `GET /sites` -> site `id` -> `GET /sites/{id}/devices` -> every
+adopted device (AP/switch/gateway) in one response. Confirmed fields:
+`id`, `macAddress`, `ipAddress`, `name`, `model`, `state`
+(`ONLINE`/`OFFLINE`), `firmwareVersion`, `features`, `interfaces`. The
+detail endpoint (`/sites/{id}/devices/{deviceId}`) adds `provisionedAt`,
+`configurationId`, `uplink` -- no serial number anywhere in this API, at
+any endpoint. `serial` is `null` for UniFi records; `mac_address` is
+kept as an extra field since it's the only stable per-device identifier
+this API gives us.
+
+`interfaces` in the raw API response is just a capability tag (e.g.
+`["radios"]` or `["ports"]`), not per-port/per-radio link state like
+Junos/EXOS provide -- this API tier is scoped to "what exists and is it
+online," not granular port telemetry. Each device gets one synthetic
+`mgmt` interface entry carrying its own IP, with `admin_status`/
+`oper_status` derived from `state`. Getting real per-port detail would
+need a different/deeper endpoint, not explored yet -- noted as a known
+v1 limitation, not a bug.
+
+Architecturally different from the SSH collectors: one API call returns
+*every* device, instead of one connection per device. Doesn't fit
+`run.py`'s per-device loop at all, so it's a standalone script
+(`collect_unifi.py`) rather than another entry in `run.py`'s `VENDORS`
+registry. This is actually closer to the eventual auto-discovery goal
+than the SSH loop is -- no per-device IP prompting needed.
+
+Fixtures in `tests/fixtures/unifi_*.json` are hand-written to match the
+real response shape, with fake IDs/MACs/IPs/names throughout.
+
 ## Decisions log
 
 - **Python + Netmiko**, not Ansible -- confirmed working for both Junos
@@ -87,7 +128,10 @@ format exactly, with fake values throughout.
 
 ## Next up
 
-- Multi-device loop already exists (`run.py`); next is a real device
-  *list* (`devices.yml` or similar) instead of prompting for one IP at a
-  time -- precursor to real auto-discovery.
-- UniFi controller API integration (separate code path, not SSH-based).
+- Multi-device loop already exists (`run.py`) for the SSH vendors; next
+  is a real device *list* (`devices.yml` or similar) instead of
+  prompting for one IP at a time -- precursor to real auto-discovery.
+- UniFi per-port/per-radio detail, if a deeper API endpoint exists for it.
+- All three vendors (Junos, EXOS, UniFi) now have working collectors --
+  next major piece is tying them together into the actual auto-discovery
+  flow described in the roadmap.

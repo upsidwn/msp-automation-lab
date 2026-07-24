@@ -33,3 +33,17 @@ def load_credential_pool(prefix="NIC_CRED"):
         i += 1
 
     return pool
+
+
+def load_unifi_config():
+    host = os.environ.get("NIC_UNIFI_HOST")
+    api_key = os.environ.get("NIC_UNIFI_API_KEY")
+
+    missing = [name for name, val in [("NIC_UNIFI_HOST", host), ("NIC_UNIFI_API_KEY", api_key)] if not val]
+    if missing:
+        raise MissingConfigError(
+            f"Missing required env vars: {', '.join(missing)}. "
+            "Copy .env.example to .env and fill it in."
+        )
+
+    return {"host": host, "api_key": api_key}
