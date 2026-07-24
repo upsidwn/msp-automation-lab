@@ -1,0 +1,269 @@
+{
+    "chassis-inventory" : [
+    {
+        "attributes" : {"xmlns" : "http://xml.juniper.net/junos/21.4R0/junos-chassis"}, 
+        "chassis" : [
+        {
+            "attributes" : {"junos:style" : "inventory"}, 
+            "name" : [
+            {
+                "data" : "Chassis"
+            }
+            ], 
+            "serial-number" : [
+            {
+                "data" : "PD3716420189"
+            }
+            ], 
+            "description" : [
+            {
+                "data" : "EX4300-48P"
+            }
+            ], 
+            "chassis-module" : [
+            {
+                "name" : [
+                {
+                    "data" : "Routing Engine 0"
+                }
+                ], 
+                "version" : [
+                {
+                    "data" : "REV 24"
+                }
+                ], 
+                "part-number" : [
+                {
+                    "data" : "650-044930"
+                }
+                ], 
+                "serial-number" : [
+                {
+                    "data" : "PD3716420189"
+                }
+                ], 
+                "description" : [
+                {
+                    "data" : "EX4300-48P"
+                }
+                ], 
+                "clei-code" : [
+                {
+                    "data" : "IPMVX10FRB"
+                }
+                ], 
+                "model-number" : [
+                {
+                    "data" : "EX4300-48P-TAA"
+                }
+                ]
+            }, 
+            {
+                "name" : [
+                {
+                    "data" : "FPC 0"
+                }
+                ], 
+                "version" : [
+                {
+                    "data" : "REV 24"
+                }
+                ], 
+                "part-number" : [
+                {
+                    "data" : "650-044930"
+                }
+                ], 
+                "serial-number" : [
+                {
+                    "data" : "PD3716420189"
+                }
+                ], 
+                "description" : [
+                {
+                    "data" : "EX4300-48P"
+                }
+                ], 
+                "clei-code" : [
+                {
+                    "data" : "IPMVX10FRB"
+                }
+                ], 
+                "model-number" : [
+                {
+                    "data" : "EX4300-48P-TAA"
+                }
+                ], 
+                "chassis-sub-module" : [
+                {
+                    "name" : [
+                    {
+                        "data" : "CPU"
+                    }
+                    ], 
+                    "part-number" : [
+                    {
+                        "data" : "BUILTIN"
+                    }
+                    ], 
+                    "serial-number" : [
+                    {
+                        "data" : "BUILTIN"
+                    }
+                    ], 
+                    "description" : [
+                    {
+                        "data" : "FPC CPU"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "PIC 0"
+                    }
+                    ], 
+                    "version" : [
+                    {
+                        "data" : "REV 24"
+                    }
+                    ], 
+                    "part-number" : [
+                    {
+                        "data" : "BUILTIN"
+                    }
+                    ], 
+                    "serial-number" : [
+                    {
+                        "data" : "BUILTIN"
+                    }
+                    ], 
+                    "description" : [
+                    {
+                        "data" : "48x 10/100/1000 Base-T"
+                    }
+                    ], 
+                    "clei-code" : [
+                    {
+                        "data" : "IPMVX10FRB"
+                    }
+                    ], 
+                    "model-number" : [
+                    {
+                        "data" : "EX4300-48P-TAA"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "PIC 1"
+                    }
+                    ], 
+                    "version" : [
+                    {
+                        "data" : "REV 24"
+                    }
+                    ], 
+                    "part-number" : [
+                    {
+                        "data" : "BUILTIN"
+                    }
+                    ], 
+                    "serial-number" : [
+                    {
+                        "data" : "BUILTIN"
+                    }
+                    ], 
+                    "description" : [
+                    {
+                        "data" : "4x 40GE QSFP+"
+                    }
+                    ], 
+                    "clei-code" : [
+                    {
+                        "data" : "IPMVX10FRB"
+                    }
+                    ], 
+                    "model-number" : [
+                    {
+                        "data" : "EX4300-48P-TAA"
+                    }
+                    ]
+                }
+                ]
+            }, 
+            {
+                "name" : [
+                {
+                    "data" : "Power Supply 0"
+                }
+                ]
+            }, 
+            {
+                "name" : [
+                {
+                    "data" : "Power Supply 1"
+                }
+                ], 
+                "version" : [
+                {
+                    "data" : "REV 01"
+                }
+                ], 
+                "part-number" : [
+                {
+                    "data" : "740-046871"
+                }
+                ], 
+                "serial-number" : [
+                {
+                    "data" : "1EDA6412084"
+                }
+                ], 
+                "description" : [
+                {
+                    "data" : "JPSU-1100-AC-AFO-A"
+                }
+                ], 
+                "clei-code" : [
+                {
+                    "data" : "IPUPAJ5KAA"
+                }
+                ], 
+                "model-number" : [
+                {
+                    "data" : "JPSU-1100-AC-AFO"
+                }
+                ]
+            }, 
+            {
+                "name" : [
+                {
+                    "data" : "Fan Tray 0"
+                }
+                ], 
+                "description" : [
+                {
+                    "data" : "Fan Module, Airflow Out (AFO)"
+                }
+                ]
+            }, 
+            {
+                "name" : [
+                {
+                    "data" : "Fan Tray 1"
+                }
+                ], 
+                "description" : [
+                {
+                    "data" : "Fan Module, Airflow Out (AFO)"
+                }
+                ]
+            }
+            ]
+        }
+        ]
+    }
+    ]
+}

@@ -18,50 +18,13 @@ The goal of this project is not to replace technicians, but to create tools that
 - Develop AI-assisted technician workflows
 - Build reusable automation examples using industry tools
 
-## Technologies
+See [docs/ROADMAP.md](docs/ROADMAP.md) for the phase-by-phase plan and
+current status, and [docs/NOTES.md](docs/NOTES.md) for the tech stack and
+working standards.
 
-Current technologies being explored:
+## Status
 
-- Ansible
-- Python
-- Bash
-- Terraform
-- Docker
-- Git/GitHub
-- APIs
-- AI/LLM integrations
-
-## Planned Projects
-
-### Network Automation
-
-Examples:
-
-- Automated network inventory collection
-- Configuration backups
-- Firmware reporting
-- Device health checks
-
-### Documentation Automation
-
-Examples:
-
-- Generate documentation from technician notes
-- Create knowledge base article drafts
-- Standardize change documentation
-
-### AI-Assisted MSP Workflows
-
-Examples:
-
-- Ticket summarization
-- Technician workflow assistants
-- Documentation generation
-
-## Project Status
-
-🚧 Active Development
-
-This project is continuously evolving as new automation concepts and tools are explored.
+Active development — currently building the network inventory collector
+(Phase 2). Things will move around as I learn.
 
 
