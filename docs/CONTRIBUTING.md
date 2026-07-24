@@ -1,67 +1,28 @@
-# Contributing Guidelines
+# Contributing
 
-## Overview
+## Setup
 
-Thank you for your interest in contributing to the MSP Automation Lab.
+```bash
+git clone https://github.com/upsidwn/msp-automation-lab.git
+cd msp-automation-lab
+```
 
-This project follows standard Git development practices to maintain organization and reliability.
-
----
-
-# Development Workflow
-
-## Branching
-
-New work should be completed using feature branches.
-
-Examples:
-
-feature/network-inventory
-feature/ai-ticket-summary
-feature/ansible-backup
-
-
-Changes should be merged into the main branch after review.
+Tools: Git, Python 3.x (venv), Docker, Ansible. VS Code with the
+Python/YAML/Ansible extensions if you want them.
 
 ---
 
-# Commit Messages
+## Workflow
 
-This project follows Conventional Commit formatting.
-
-Examples:
-
-feat: add network inventory automation
-fix: correct ansible inventory parsing
-docs: update project documentation
-refactor: improve API handling
-
+- Feature branches: `feature/network-inventory`, `docs/whatever`
+- Conventional commits: `feat: ...`, `fix: ...`, `docs: ...`
+- PRs should say what changed, why, and how it was tested
+- Bugs/ideas → GitHub Issues
 
 ---
 
-# Pull Requests
+## Before starting a new project
 
-Pull requests should include:
-
-- Description of changes
-- Reason for change
-- Testing performed
-- Screenshots or examples when applicable
-
----
-
-# Code Standards
-
-Projects should prioritize:
-
-- Readability
-- Documentation
-- Security
-- Reusability
-- Clear examples
-
----
-
-# Issues
-
-Feature requests, bugs, and improvements should be tracked using GitHub Issues.
+Write the README first — what it does, what it needs, how to run it.
+Code comes after, not before. See [NOTES.md](NOTES.md) for the folder
+convention each project should follow.
