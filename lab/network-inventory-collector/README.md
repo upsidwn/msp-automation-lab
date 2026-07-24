@@ -14,7 +14,6 @@ is" step.
 ## Lab gear
 
 - Juniper switch, Junos, vanilla/no real config — safest to break, build here first
-- Extreme Networks 5420, EXOS
 - Ubiquiti, UniFi controller-managed (UDM/Cloud Key)
 
 ## Scope for v1
