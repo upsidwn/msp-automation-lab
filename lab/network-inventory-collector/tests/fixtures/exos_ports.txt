@@ -1,0 +1,42 @@
+
+Port:	1
+	Virtual-router:	VR-Default
+	Type:		UTP
+	Random Early drop:	Unsupported
+	Admin state:	Enabled with  auto-speed sensing  auto-duplex
+	Link State:	Active, 1Gbps, full-duplex
+	Link Ups:       3        Last: Thu Jan  1 00:00:00 2026
+	Link Downs:     2        Last: Thu Jan  1 00:00:00 2026
+
+	VLAN cfg:
+		 Name: Default, 802.1Q Tag = 1, MAC-limit = No-limit, Virtual router:   VR-Default
+	STP cfg:
+		s0(disable), Tag=(none), Mode=802.1D, State=DISABLED
+
+Port:	2
+	Virtual-router:	VR-Default
+	Type:		UTP
+	Random Early drop:	Unsupported
+	Admin state:	Enabled with  auto-speed sensing  auto-duplex
+	Link State:	Ready
+	Link Ups:       0        Last: --
+	Link Downs:     0        Last: --
+
+	VLAN cfg:
+		 Name: Default, 802.1Q Tag = 1, MAC-limit = No-limit, Virtual router:   VR-Default
+	STP cfg:
+		s0(disable), Tag=(none), Mode=802.1D, State=DISABLED
+
+Port:	3
+	Virtual-router:	VR-Default
+	Type:		UTP
+	Random Early drop:	Unsupported
+	Admin state:	Disabled
+	Link State:	Ready
+	Link Ups:       0        Last: --
+	Link Downs:     0        Last: --
+
+	VLAN cfg:
+		 Name: Default, 802.1Q Tag = 1, MAC-limit = No-limit, Virtual router:   VR-Default
+	STP cfg:
+		s0(disable), Tag=(none), Mode=802.1D, State=DISABLED

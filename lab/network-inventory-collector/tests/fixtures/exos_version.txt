@@ -1,0 +1,9 @@
+
+Switch          : LAB-PN-0001 lab-switch-2-serial Rev AA BootROM: 1.1.1.1   IMG: 30.1.1.1
+
+Image   : Extreme Networks Switch Engine version 30.1.1.1 by release-manager
+          on Mon 01 Jan 2024 12:00:00 AM UTC
+BootROM : Default 1.1.1.1  Alternate 1.1.1.1
+Diagnostics : 0.0.0.0
+Certified Version : EXOS Linux 5.10.0, Extreme Networks FIPS Object Module 1.0.0
+Build Tools Version : exos-lab-sdk-0.0.0.0.0

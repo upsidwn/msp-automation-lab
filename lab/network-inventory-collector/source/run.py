@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from netmiko import NetmikoTimeoutException
 
 import collector as junos_collector
+import collector_exos as exos_collector
 from auth import connect_with_pool
 from config import load_credential_pool
 
@@ -21,7 +22,7 @@ load_dotenv()
 # device_type, label, collect(conn, host) -> record. None = not built yet.
 VENDORS = {
     "1": ("juniper_junos", "Juniper (Junos)", junos_collector.collect),
-    "2": ("extreme_exos", "Extreme (EXOS)", None),
+    "2": ("extreme_exos", "Extreme (EXOS)", exos_collector.collect),
 }
 
 
@@ -62,13 +63,14 @@ def main():
                 conn.disconnect()
 
             records.append(record)
-            print(json.dumps(record, indent=2))
+            model = record.get("model") or "(unknown model)"
+            print(f"OK: {host} -- {record['vendor']} {model}, {len(record['interfaces'])} interfaces")
 
         again = input("\nAdd another device? (y/n): ").strip().lower()
         if again != "y":
             break
 
-    out_path = os.path.join(os.path.dirname(__file__), "..", "examples", "inventory_run.json")
+    out_path = os.path.join(os.path.dirname(__file__), "..", "output", "inventory_run.json")
     with open(out_path, "w") as f:
         json.dump(records, f, indent=2)
 

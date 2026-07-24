@@ -18,14 +18,14 @@ def test_parse_version():
     result = parse_version(_read_fixture("version.json"))
 
     assert result["vendor"] == "juniper"
-    assert result["model"] == "ex4300-48p"
+    assert result["model"] == "lab-switch-1"
     assert result["firmware"] == "21.4R3.15"
 
 
 def test_parse_hardware():
     result = parse_hardware(_read_fixture("hardware.json"))
 
-    assert result["serial"] == "FAKE-SERIAL-0001"
+    assert result["serial"] == "lab-switch-1-serial"
 
 
 def test_parse_interfaces():
@@ -52,5 +52,5 @@ def test_collect_builds_full_record_from_connection():
 
     assert record["host"] == "10.0.0.1"
     assert record["vendor"] == "juniper"
-    assert record["serial"] == "FAKE-SERIAL-0001"
+    assert record["serial"] == "lab-switch-1-serial"
     assert "collected_at" in record
