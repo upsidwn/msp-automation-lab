@@ -1,9 +1,10 @@
 import os
 import sys
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
-from collector import parse_hardware, parse_interfaces, parse_version
+from collector import COMMANDS, collect, parse_hardware, parse_interfaces, parse_version
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -35,3 +36,21 @@ def test_parse_interfaces():
 
     irb = next(iface for iface in interfaces if iface["name"] == "irb")
     assert "192.0.2.212/24" in irb["ip_addresses"]
+
+
+def test_collect_builds_full_record_from_connection():
+    fixtures_by_command = {
+        COMMANDS["version"]: _read_fixture("version.json"),
+        COMMANDS["hardware"]: _read_fixture("hardware.json"),
+        COMMANDS["interfaces"]: _read_fixture("interfaces.json"),
+    }
+
+    fake_conn = MagicMock()
+    fake_conn.send_command.side_effect = lambda cmd, read_timeout=None: fixtures_by_command[cmd]
+
+    record = collect(fake_conn, "10.0.0.1")
+
+    assert record["host"] == "10.0.0.1"
+    assert record["vendor"] == "juniper"
+    assert record["serial"] == "FAKE-SERIAL-0001"
+    assert "collected_at" in record

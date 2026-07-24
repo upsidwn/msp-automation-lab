@@ -32,6 +32,11 @@ project-name/
   etc. from actual gear stay local (`examples/*.json`/`*.csv` are
   gitignored). Test fixtures are sanitized/fake data, not real captures,
   so the test suite still runs for anyone without the actual hardware.
+- Refer to personal lab gear generically in anything committed — vendor
+  + OS only (e.g. "Extreme EXOS"), not exact model numbers or serials.
+- Don't persist prompted/discovered device creds to disk in plaintext —
+  in-memory for the run is fine; use an OS keychain (e.g. `keyring`) if
+  persistence across runs is ever needed, not a growing `.env`.
 - Before every commit: `git diff` / `git status` — check nothing sensitive
   snuck in.
 - If a secret leaks into a commit anyway: rotate it immediately, assume

@@ -47,13 +47,22 @@ is" step.
   (probably a YAML file — not needed yet with a single device)
 - Whether output feeds a NetBox import later or just stands alone
 
+## Auth
+
+Credentials are a pool, not one fixed set — real networks rarely have a
+single account that works everywhere. `connect_with_pool()` tries each
+known credential in order; if none work, it prompts interactively and
+keeps the working one in memory for the rest of that run (never written
+back to disk). See `source/auth.py` and `source/config.py`.
+
 ## Source layout
 
 - `source/connect_test.py` — raw SSH smoke test (connect, print `show version`)
-- `source/config.py` — env-var credential loading
+- `source/config.py` — env-var host + credential pool loading
+- `source/auth.py` — shared credential-pool connect logic (pool → prompt fallback)
 - `source/collector.py` — Junos JSON parsing (version/hardware/interfaces)
 - `source/collect.py` — the real collector: connect → parse → write JSON/CSV
-- `tests/fixtures/*.json` — real captures from the lab switch, used by the parser tests
+- `tests/fixtures/*.json` — sanitized captures from the lab switch, used by the parser tests
 
 ## Notes
 

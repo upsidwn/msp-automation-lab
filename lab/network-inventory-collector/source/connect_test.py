@@ -3,30 +3,28 @@
 # just proving auth + reachability before building the real collector.
 
 from dotenv import load_dotenv
-from netmiko import ConnectHandler, NetmikoAuthenticationException, NetmikoTimeoutException
+from netmiko import NetmikoTimeoutException
 
-from config import load_juniper_config, MissingConfigError
+from auth import connect_with_pool
+from config import MissingConfigError, load_credential_pool, load_juniper_host
 
 load_dotenv()
 
 
 def main():
     try:
-        creds = load_juniper_config()
+        host = load_juniper_host()
     except MissingConfigError as e:
         print(f"Config error: {e}")
         return
 
-    device = {"device_type": "juniper_junos", **creds}
+    pool = load_credential_pool()
 
-    print(f"Connecting to {device['host']}...")
+    print(f"Connecting to {host}...")
     try:
-        conn = ConnectHandler(**device)
-    except NetmikoAuthenticationException:
-        print("Auth failed -- check NIC_JUNOS_USER / NIC_JUNOS_PASS.")
-        return
+        conn = connect_with_pool("juniper_junos", host, pool)
     except NetmikoTimeoutException:
-        print(f"Timed out connecting to {device['host']} -- check it's reachable and SSH is enabled.")
+        print(f"Timed out connecting to {host} -- check it's reachable and SSH is enabled.")
         return
 
     try:

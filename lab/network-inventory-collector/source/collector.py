@@ -3,6 +3,13 @@
 # exists to stop repeating that unwrap everywhere.
 
 import json
+from datetime import datetime, timezone
+
+COMMANDS = {
+    "version": "show version | display json",
+    "hardware": "show chassis hardware | display json",
+    "interfaces": "show interfaces terse | display json",
+}
 
 
 def _first_data(items):
@@ -56,3 +63,19 @@ def parse_interfaces(raw_json):
         )
 
     return interfaces
+
+
+def collect(conn, host):
+    """Runs the inventory commands over an already-connected Netmiko
+    session and returns one merged record. Shared by the single-device
+    CLI (collect.py) and the multi-device interactive runner (run.py).
+    """
+    raw = {key: conn.send_command(cmd, read_timeout=30) for key, cmd in COMMANDS.items()}
+
+    record = parse_version(raw["version"])
+    record["host"] = host
+    record["serial"] = parse_hardware(raw["hardware"])["serial"]
+    record["interfaces"] = parse_interfaces(raw["interfaces"])
+    record["collected_at"] = datetime.now(timezone.utc).isoformat()
+
+    return record
