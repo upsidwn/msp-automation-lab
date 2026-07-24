@@ -1,0 +1,184 @@
+{
+    "multi-routing-engine-results" : [
+    {
+        "multi-routing-engine-item" : [
+        {
+            "re-name" : [
+            {
+                "data" : "fpc0"
+            }
+            ], 
+            "software-information" : [
+            {
+                "host-name" : [
+                {
+                }
+                ], 
+                "product-model" : [
+                {
+                    "data" : "ex4300-48p"
+                }
+                ], 
+                "product-name" : [
+                {
+                    "data" : "ex4300-48p"
+                }
+                ], 
+                "junos-version" : [
+                {
+                    "data" : "21.4R3.15"
+                }
+                ], 
+                "package-information" : [
+                {
+                    "name" : [
+                    {
+                        "data" : "junos"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS EX  Software Suite [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "fips-mode-powerpc"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS FIPS mode utilities [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "jcrypto-ex"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS Crypto Software Suite [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "jdocs-ex"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS Online Documentation [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "jphone-home"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS Phone-Home Software Suite [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "jsd"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS jsd [powerpc-21.4R3.15-jet-1]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "jsdn-powerpc"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS SDN Software Suite [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "junos-ex-4300"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS EX 4300 Software Suite [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "jweb-ex"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS Web Management Platform Package [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "py-base-powerpc"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS py-base-powerpc [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "py-extensions-powerpc"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "JUNOS py-extensions-powerpc [21.4R3.15]"
+                    }
+                    ]
+                }, 
+                {
+                    "name" : [
+                    {
+                        "data" : "restapi-ex"
+                    }
+                    ], 
+                    "comment" : [
+                    {
+                        "data" : "REST API Software Suite [21.4R3.15]"
+                    }
+                    ]
+                }
+                ]
+            }
+            ]
+        }
+        ]
+    }
+    ]
+}
