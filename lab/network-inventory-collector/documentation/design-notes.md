@@ -8,13 +8,16 @@
   "vendor": "juniper",
   "model": "ex4300-48p",
   "firmware": "21.4R3.15",
-  "serial": "PD3716420189",
+  "serial": "FAKE-SERIAL-0001",
   "interfaces": [
-    {"name": "irb", "admin_status": "up", "oper_status": "up", "ip_addresses": ["172.30.10.212/24"]}
+    {"name": "irb", "admin_status": "up", "oper_status": "up", "ip_addresses": ["192.0.2.212/24"]}
   ],
   "collected_at": "2026-07-24T15:42:25Z"
 }
 ```
+
+(Serial/IP above are sanitized placeholders — real collector output never gets
+committed, see `.gitignore` and the note in [docs/NOTES.md](../../../docs/NOTES.md).)
 
 `hostname` comes back `null` on this switch since it's vanilla/unconfigured
 -- Junos only reports it if `set system host-name` has been set. Not a bug,

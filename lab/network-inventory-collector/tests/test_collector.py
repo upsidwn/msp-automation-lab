@@ -24,7 +24,7 @@ def test_parse_version():
 def test_parse_hardware():
     result = parse_hardware(_read_fixture("hardware.json"))
 
-    assert result["serial"] == "PD3716420189"
+    assert result["serial"] == "FAKE-SERIAL-0001"
 
 
 def test_parse_interfaces():
@@ -34,4 +34,4 @@ def test_parse_interfaces():
     assert all({"name", "admin_status", "oper_status", "ip_addresses"} <= iface.keys() for iface in interfaces)
 
     irb = next(iface for iface in interfaces if iface["name"] == "irb")
-    assert "172.30.10.212/24" in irb["ip_addresses"]
+    assert "192.0.2.212/24" in irb["ip_addresses"]

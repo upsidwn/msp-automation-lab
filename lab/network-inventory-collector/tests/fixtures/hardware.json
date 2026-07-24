@@ -12,7 +12,7 @@
             ], 
             "serial-number" : [
             {
-                "data" : "PD3716420189"
+                "data" : "FAKE-SERIAL-0001"
             }
             ], 
             "description" : [
@@ -39,7 +39,7 @@
                 ], 
                 "serial-number" : [
                 {
-                    "data" : "PD3716420189"
+                    "data" : "FAKE-SERIAL-0001"
                 }
                 ], 
                 "description" : [
@@ -76,7 +76,7 @@
                 ], 
                 "serial-number" : [
                 {
-                    "data" : "PD3716420189"
+                    "data" : "FAKE-SERIAL-0001"
                 }
                 ], 
                 "description" : [

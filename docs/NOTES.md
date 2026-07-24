@@ -28,6 +28,10 @@ project-name/
 - Don't log passwords/tokens/API keys.
 - Don't store customer PII unless there's a real reason to, and encrypt it
   if you do.
+- Real collector output never gets committed — serials, hostnames, IPs,
+  etc. from actual gear stay local (`examples/*.json`/`*.csv` are
+  gitignored). Test fixtures are sanitized/fake data, not real captures,
+  so the test suite still runs for anyone without the actual hardware.
 - Before every commit: `git diff` / `git status` — check nothing sensitive
   snuck in.
 - If a secret leaks into a commit anyway: rotate it immediately, assume

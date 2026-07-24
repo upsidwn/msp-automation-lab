@@ -2708,7 +2708,7 @@
                     {
                         "ifa-local" : [
                         {
-                            "data" : "172.30.10.212/24", 
+                            "data" : "192.0.2.212/24", 
                             "attributes" : {"junos:emit" : "emit"}
                         }
                         ]

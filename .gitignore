@@ -13,3 +13,9 @@ venv/
 
 # OS junk
 .DS_Store
+
+# Collector output - real device data (serials, IPs, etc), never commit
+lab/*/examples/*.json
+lab/*/examples/*.csv
+production/*/examples/*.json
+production/*/examples/*.csv
