@@ -126,12 +126,56 @@ real response shape, with fake IDs/MACs/IPs/names throughout.
   collector. The same Netmiko connection + env-based credential pattern
   built here should carry over directly when that project starts.
 
+## nmap-based discovery (planned)
+
+Auto-discovery scoped deliberately narrower than the full "moderate vs.
+thorough" tradeoff space discussed in the roadmap -- one clean, testable
+slice rather than trying to build the whole thing at once. Leans on
+mature existing tools (nmap, later SNMP/`lldpd`) rather than hand-rolled
+scanning, both for reliability and because reimplementing what nmap
+already does well isn't a good use of time.
+
+**v1 scope:**
+
+1. **Target**: explicit CIDR passed in, not auto-detected yet.
+   Subnet auto-detection is its own small problem (multiple interfaces,
+   VPNs, etc.) -- fast-follow, not bundled into the first pass.
+2. **Scan**: `nmap -sT -sV --open -p 22,80,443 <cidr> -oX -` -- plain
+   TCP connect scan (no `-sS`/`-O`, so no `sudo` required), service/
+   version detection on just the ports that matter here, XML output
+   piped to Python instead of screen-scraping text.
+3. **Parse**: stdlib `xml.etree.ElementTree` (no new dependency) turns
+   nmap's XML into candidates: `{ip, mac, open_ports, service_banners}`.
+4. **Dispatch**: candidates with port 22 open get tried against the
+   credential pool using each supported `device_type` in turn
+   (`juniper_junos`, `extreme_exos`) via the existing
+   `auth.connect_with_pool()` -- no new auth machinery. Candidates with
+   443 open get tried against the UniFi Integration API path.
+5. **Output**: same record schema, same `output/` write pattern as
+   everything else. Anything nmap found but couldn't classify/
+   authenticate still shows up as an "unidentified" entry -- nothing
+   silently dropped.
+6. **New files**: `nmap_scan.py` (run nmap, parse XML, return
+   candidates -- testable in isolation) and `discover.py` (orchestrator:
+   scan -> dispatch -> collect -> write). Same separation of concerns
+   as the rest of the project: "run an external tool" stays separate
+   from "decide what to do with results."
+7. **Testing**: nmap itself can't be unit tested, but XML parsing can --
+   same fixture pattern as everywhere else (hand-sanitized fake nmap
+   XML output, not a real capture).
+
+**Explicitly deferred** to later work: subnet auto-detection, SNMP
+`sysDescr` sweep, `lldpd`-based passive seed discovery (zero-credential
+"what's my upstream switch" bootstrap), multi-VLAN traversal. These are
+real Tier B/C items from the roadmap discussion, not abandoned -- just
+sequenced after a working v1 exists.
+
 ## Next up
 
-- Multi-device loop already exists (`run.py`) for the SSH vendors; next
-  is a real device *list* (`devices.yml` or similar) instead of
-  prompting for one IP at a time -- precursor to real auto-discovery.
+- nmap-based discovery, scoped above -- the next concrete piece of work.
+- Multi-device loop already exists (`run.py`) for the SSH vendors; a
+  real device *list* (`devices.yml` or similar) may end up superseded
+  by discovery itself rather than being a separate precursor step.
 - UniFi per-port/per-radio detail, if a deeper API endpoint exists for it.
 - All three vendors (Junos, EXOS, UniFi) now have working collectors --
-  next major piece is tying them together into the actual auto-discovery
-  flow described in the roadmap.
+  discovery is what ties them together into the actual end-goal flow.

@@ -86,7 +86,14 @@ back to disk). See `source/auth.py` and `source/config.py`.
 - `source/collect.py` — single-device Juniper CLI: connect → parse → write JSON/CSV
 - `source/collect_unifi.py` — standalone UniFi CLI: one API key → every device → write JSON
 - `source/run.py` — interactive multi-device/multi-vendor loop (Juniper/EXOS), shared pool, combined output
+- `source/nmap_scan.py` — runs nmap (plain TCP connect scan, no sudo needed), parses XML into candidate hosts
 - `tests/fixtures/*` — sanitized fixtures (fake serials/models/IPs/MACs, real format), used by the parser tests
+
+## System requirements
+
+Beyond the Python packages in `requirements.txt`, `nmap` must be
+installed separately (it's a CLI tool, not a pip package) — on macOS:
+`brew install nmap`.
 
 ## Notes
 
