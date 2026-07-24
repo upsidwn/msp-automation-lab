@@ -1,9 +1,11 @@
 # Network Inventory Collector
 
-Status: working against both Juniper and Extreme EXOS — connects, pulls
-version/hardware/interfaces, writes JSON + CSV to `output/`. The
-interactive `run.py` loop handles both vendors in one run off a shared
-credential pool. Lives in `lab/` until it's stable enough to move to
+Status: working against Juniper, Extreme EXOS, and UniFi — connects,
+pulls version/hardware/interfaces, writes JSON + CSV to `output/`. The
+interactive `run.py` loop handles the SSH vendors (Juniper/EXOS) in one
+run off a shared credential pool; UniFi is a separate standalone
+collector (`collect_unifi.py`) since it works fundamentally differently
+— see Scope below. Lives in `lab/` until it's stable enough to move to
 `production/`.
 
 ## What it does
@@ -24,15 +26,18 @@ is" step.
 - Static list of devices to start — no auto-discovery yet
 - Output: CSV and/or JSON
 - Two collection paths, since the gear doesn't all speak the same language:
-  - **SSH via Netmiko** for Junos and EXOS — `device_type: juniper_junos` /
-    `extreme_exos`
-  - **UniFi Network controller API** for the Ubiquiti gear — it's
-    controller-managed, so SSH to individual devices isn't the normal
-    path; pull inventory from the controller's local REST API instead.
-    This will end up as a separate module from the SSH collector.
+  - **SSH via Netmiko** for Junos and EXOS — one connection per device,
+    `device_type: juniper_junos` / `extreme_exos`, driven by `run.py`'s
+    per-device loop.
+  - **UniFi Network Integration API** (official, key-based auth — not
+    the older unofficial controller API) for the Ubiquiti gear. One
+    call to the console returns *every* adopted device at once, so this
+    doesn't fit the per-device SSH loop at all — it's a standalone
+    script (`collect_unifi.py`). No SSH to individual APs/switches:
+    they're controller-managed, and this API is the officially
+    supported way in.
 - Build/test order: Juniper first (lowest risk), then Extreme (virtual
-  lab instance), then the UniFi API integration last (different code
-  path entirely)
+  lab instance), then UniFi (different code path entirely) — all three done.
 
 ## Confirmed
 
@@ -49,6 +54,12 @@ is" step.
   vendors in a single `run.py` session (not just per-device); a
   credential learned on one device is tried against the next regardless
   of vendor.
+- **UniFi confirmed live** — key-based auth against the real console,
+  all adopted devices (AP/switch/gateway) collected in one call. No
+  serial number available from this API (field doesn't exist), so
+  `serial` is `null` for UniFi devices and MAC address is kept instead
+  as the stable identifier. Interface detail is coarse compared to
+  Junos/EXOS — see design-notes.md.
 
 ## Still deciding
 
@@ -67,13 +78,15 @@ back to disk). See `source/auth.py` and `source/config.py`.
 ## Source layout
 
 - `source/connect_test.py` — raw SSH smoke test (Juniper only, connect + print `show version`)
-- `source/config.py` — env-var host + credential pool loading
-- `source/auth.py` — shared credential-pool connect logic (pool → prompt fallback)
+- `source/config.py` — env-var host + credential pool + UniFi API key loading
+- `source/auth.py` — shared credential-pool connect logic (pool → prompt fallback), SSH vendors only
 - `source/collector.py` — Junos JSON parsing (version/hardware/interfaces)
 - `source/collector_exos.py` — Extreme EXOS text parsing (version/switch/ports/vlan)
+- `source/collector_unifi.py` — UniFi Integration API calls + record building
 - `source/collect.py` — single-device Juniper CLI: connect → parse → write JSON/CSV
-- `source/run.py` — interactive multi-device/multi-vendor loop, shared pool, combined output
-- `tests/fixtures/*` — sanitized fixtures (fake serials/models/IPs, real format), used by the parser tests
+- `source/collect_unifi.py` — standalone UniFi CLI: one API key → every device → write JSON
+- `source/run.py` — interactive multi-device/multi-vendor loop (Juniper/EXOS), shared pool, combined output
+- `tests/fixtures/*` — sanitized fixtures (fake serials/models/IPs/MACs, real format), used by the parser tests
 
 ## Notes
 
