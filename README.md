@@ -18,13 +18,13 @@ The goal of this project is not to replace technicians, but to create tools that
 - Develop AI-assisted technician workflows
 - Build reusable automation examples using industry tools
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for the phase-by-phase plan and
+See [docs/ROADMAP.md](docs/ROADMAP.md) for the play by play plan and
 current status, and [docs/NOTES.md](docs/NOTES.md) for the tech stack and
 working standards.
 
 ## Status
 
-Active development — currently building the network inventory collector
+Active development - currently building the network inventory collector
 (Phase 2). Things will move around as I learn.
 
 
