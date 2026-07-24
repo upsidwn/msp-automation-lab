@@ -20,6 +20,10 @@ Repo structure, docs, dev standards, GitHub setup.
 Network inventory collection, config backups, firmware/health checks.
 Ansible + Python + SSH/REST APIs.
 → Currently building: [`lab/network-inventory-collector/`](../lab/network-inventory-collector/README.md)
+→ Endgame for the collector: point it at a network (e.g. a NUC/laptop
+dropped on a customer LAN) and have it auto-discover and inventory
+devices on its own, instead of being handed one IP/vendor at a time —
+see the backlog item below.
 
 **Phase 3 — Documentation Automation** (planned)
 Turn technician notes into structured docs / KB drafts automatically.
@@ -41,6 +45,14 @@ Dashboards, compliance checks, metrics. Grafana/Prometheus probably.
 Not committed to building all of these — just parked here so I don't
 forget them:
 
+- **Auto-discovery for the inventory collector** — SNMP sweep and/or
+  LLDP/CDP neighbor walk to find devices on a subnet instead of a manual
+  IP list, then apply known site credentials and dispatch to the right
+  vendor parser automatically. Goal: drop a NUC/laptop on a customer
+  network and have it self-inventory. UniFi gear stays a separate path
+  (ask the controller API for its device list, no discovery needed there).
+  Do this after 2-3 vendor collectors exist individually — it's a
+  dispatch layer on top of those, not something to build alongside them.
 - Firmware compliance reporter
 - Network diagram generator
 - Customer environment doc generator
