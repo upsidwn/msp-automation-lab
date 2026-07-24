@@ -1,8 +1,10 @@
 # Network Inventory Collector
 
-Status: working v1 against the Juniper switch — connects, pulls
-version/hardware/interfaces, writes JSON + CSV to `examples/`. Lives in
-`lab/` until it's stable enough to move to `production/`.
+Status: working against both Juniper and Extreme EXOS — connects, pulls
+version/hardware/interfaces, writes JSON + CSV to `output/`. The
+interactive `run.py` loop handles both vendors in one run off a shared
+credential pool. Lives in `lab/` until it's stable enough to move to
+`production/`.
 
 ## What it does
 
@@ -14,6 +16,7 @@ is" step.
 ## Lab gear
 
 - Juniper switch, Junos, vanilla/no real config — safest to break, build here first
+- Extreme EXOS, virtual lab instance (EVE-NG or similar)
 - Ubiquiti, UniFi controller-managed (UDM/Cloud Key)
 
 ## Scope for v1
@@ -27,24 +30,30 @@ is" step.
     controller-managed, so SSH to individual devices isn't the normal
     path; pull inventory from the controller's local REST API instead.
     This will end up as a separate module from the SSH collector.
-- Build/test order: Juniper first (lowest risk), then Extreme, then the
-  UniFi API integration last (different code path entirely)
+- Build/test order: Juniper first (lowest risk), then Extreme (virtual
+  lab instance), then the UniFi API integration last (different code
+  path entirely)
 
 ## Confirmed
 
-- **Python + Netmiko** over Ansible — working end to end against the
-  Juniper switch.
+- **Python + Netmiko** over Ansible — working end to end against both
+  Juniper and Extreme EXOS.
 - **Data schema** — hostname, vendor, model, firmware, serial, interfaces
-  (name/admin_status/oper_status/ip_addresses). See
-  [design-notes.md](documentation/design-notes.md) for exact field
-  sources and JSON parsing quirks.
-- **Output** — full JSON record + a flattened one-row CSV summary, both
-  written to `examples/`.
+  (name/admin_status/oper_status/ip_addresses), same shape for every
+  vendor. See [design-notes.md](documentation/design-notes.md) for exact
+  field sources and per-vendor parsing quirks.
+- **Output** — full JSON record + a flattened one-row CSV summary
+  (single-device path), or one combined JSON array for a multi-device
+  `run.py` session — all written to `output/`.
+- **Multi-vendor auth confirmed** — the credential pool is shared across
+  vendors in a single `run.py` session (not just per-device); a
+  credential learned on one device is tried against the next regardless
+  of vendor.
 
 ## Still deciding
 
-- Where the device list comes from once there's more than one box
-  (probably a YAML file — not needed yet with a single device)
+- Where the device list comes from for something bigger than manual
+  prompting (probably a YAML file, or the eventual auto-discovery piece)
 - Whether output feeds a NetBox import later or just stands alone
 
 ## Auth
@@ -57,12 +66,14 @@ back to disk). See `source/auth.py` and `source/config.py`.
 
 ## Source layout
 
-- `source/connect_test.py` — raw SSH smoke test (connect, print `show version`)
+- `source/connect_test.py` — raw SSH smoke test (Juniper only, connect + print `show version`)
 - `source/config.py` — env-var host + credential pool loading
 - `source/auth.py` — shared credential-pool connect logic (pool → prompt fallback)
 - `source/collector.py` — Junos JSON parsing (version/hardware/interfaces)
-- `source/collect.py` — the real collector: connect → parse → write JSON/CSV
-- `tests/fixtures/*.json` — sanitized captures from the lab switch, used by the parser tests
+- `source/collector_exos.py` — Extreme EXOS text parsing (version/switch/ports/vlan)
+- `source/collect.py` — single-device Juniper CLI: connect → parse → write JSON/CSV
+- `source/run.py` — interactive multi-device/multi-vendor loop, shared pool, combined output
+- `tests/fixtures/*` — sanitized fixtures (fake serials/models/IPs, real format), used by the parser tests
 
 ## Notes
 

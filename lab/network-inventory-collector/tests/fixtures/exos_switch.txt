@@ -1,0 +1,34 @@
+
+SysName:          lab-switch-2
+SysLocation:
+SysContact:       https://www.extremenetworks.com/support/
+System MAC:       00:11:22:33:44:55
+System Type:      lab-switch-2-SwitchEngine
+
+SysHealth check:  Enabled (Normal)
+Recovery Mode:    All
+System Watchdog:  Enabled
+Trusted Delivery: Boot Image Verified
+
+Current Time:     Thu Jan 01 00:00:00 2026
+Timezone:         [Auto DST Disabled] GMT Offset: 0 minutes, name is UTC.
+Boot Time:        Thu Jan 01 00:00:00 2026
+Boot Count:       1
+Next Reboot:      None scheduled
+System UpTime:    1 minute 0 seconds
+
+Current State:    OPERATIONAL
+Image Selected:   primary
+Image Booted:     primary
+Primary ver:      30.1.1.1
+Secondary ver:    30.1.1.1
+
+Config Selected:  primary.cfg
+Config Booted:    primary.cfg
+Config Automatic: NONE (Disabled)
+
+primary.cfg       Created by Extreme Networks Switch Engine version 30.1.1.1
+                  100000 bytes saved on Thu Jan 01 00:00:00 2026
+
+
+LAA MAC:          Locally Administered MAC Address Disabled

@@ -12,12 +12,12 @@
             ], 
             "serial-number" : [
             {
-                "data" : "FAKE-SERIAL-0001"
+                "data" : "lab-switch-1-serial"
             }
             ], 
             "description" : [
             {
-                "data" : "EX4300-48P"
+                "data" : "lab-switch-1"
             }
             ], 
             "chassis-module" : [
@@ -39,12 +39,12 @@
                 ], 
                 "serial-number" : [
                 {
-                    "data" : "FAKE-SERIAL-0001"
+                    "data" : "lab-switch-1-serial"
                 }
                 ], 
                 "description" : [
                 {
-                    "data" : "EX4300-48P"
+                    "data" : "lab-switch-1"
                 }
                 ], 
                 "clei-code" : [
@@ -54,7 +54,7 @@
                 ], 
                 "model-number" : [
                 {
-                    "data" : "EX4300-48P-TAA"
+                    "data" : "lab-switch-1-TAA"
                 }
                 ]
             }, 
@@ -76,12 +76,12 @@
                 ], 
                 "serial-number" : [
                 {
-                    "data" : "FAKE-SERIAL-0001"
+                    "data" : "lab-switch-1-serial"
                 }
                 ], 
                 "description" : [
                 {
-                    "data" : "EX4300-48P"
+                    "data" : "lab-switch-1"
                 }
                 ], 
                 "clei-code" : [
@@ -91,7 +91,7 @@
                 ], 
                 "model-number" : [
                 {
-                    "data" : "EX4300-48P-TAA"
+                    "data" : "lab-switch-1-TAA"
                 }
                 ], 
                 "chassis-sub-module" : [
@@ -150,7 +150,7 @@
                     ], 
                     "model-number" : [
                     {
-                        "data" : "EX4300-48P-TAA"
+                        "data" : "lab-switch-1-TAA"
                     }
                     ]
                 }, 
@@ -187,7 +187,7 @@
                     ], 
                     "model-number" : [
                     {
-                        "data" : "EX4300-48P-TAA"
+                        "data" : "lab-switch-1-TAA"
                     }
                     ]
                 }

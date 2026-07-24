@@ -15,7 +15,7 @@ project-name/
   README.md
   documentation/
   source/
-  examples/
+  output/
   tests/
 ```
 
@@ -29,11 +29,16 @@ project-name/
 - Don't store customer PII unless there's a real reason to, and encrypt it
   if you do.
 - Real collector output never gets committed — serials, hostnames, IPs,
-  etc. from actual gear stay local (`examples/*.json`/`*.csv` are
-  gitignored). Test fixtures are sanitized/fake data, not real captures,
-  so the test suite still runs for anyone without the actual hardware.
-- Refer to personal lab gear generically in anything committed — vendor
-  + OS only (e.g. "Extreme EXOS"), not exact model numbers or serials.
+  model numbers, etc. from actual gear stay local (`output/*.json`/
+  `*.csv` are gitignored). Test fixtures are sanitized/fake data, not
+  real captures — every identifying field (serial, model, IP), not just
+  serial/IP — so the test suite still runs for anyone without the actual
+  hardware.
+- Describe personal lab gear as generic/virtual in anything committed —
+  vendor + OS only (e.g. "Extreme EXOS, virtual lab instance"), never
+  exact model numbers, serials, or a claim of specific physical
+  hardware. Real hardware can still be used to actually test against;
+  just don't say so in anything that gets committed.
 - Don't persist prompted/discovered device creds to disk in plaintext —
   in-memory for the run is fine; use an OS keychain (e.g. `keyring`) if
   persistence across runs is ever needed, not a growing `.env`.

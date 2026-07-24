@@ -1,6 +1,6 @@
 # Real Juniper inventory collector -- connects, gathers version/hardware/
 # interface data, writes a JSON record (and a flattened CSV summary line)
-# to examples/. connect_test.py stays as the quick raw-connectivity check.
+# to output/. connect_test.py stays as the quick raw-connectivity check.
 # run.py is the multi-device version of this same collection logic.
 
 import csv
@@ -62,7 +62,7 @@ def main():
         print("Timed out connecting -- check the device is reachable and SSH is enabled.")
         return
 
-    out_dir = os.path.join(os.path.dirname(__file__), "..", "examples")
+    out_dir = os.path.join(os.path.dirname(__file__), "..", "output")
     write_json(record, os.path.join(out_dir, "juniper_inventory.json"))
     write_csv_summary(record, os.path.join(out_dir, "juniper_inventory.csv"))
 
