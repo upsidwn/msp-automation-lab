@@ -1,8 +1,8 @@
 # Notes
 
-Working notes and standards for this repo — security, tooling, AI usage,
-project conventions. Not gospel, just what I want to keep consistent as
-this grows.
+Working notes and standards for this repo: security, tooling, project
+conventions. Not gospel, just what I want to keep consistent as this
+grows.
 
 ---
 
@@ -28,21 +28,18 @@ project-name/
 - Don't log passwords/tokens/API keys.
 - Don't store customer PII unless there's a real reason to, and encrypt it
   if you do.
-- Real collector output never gets committed — serials, hostnames, IPs,
+- Real collector output never gets committed. Serials, hostnames, IPs,
   model numbers, etc. from actual gear stay local (`output/*.json`/
   `*.csv` are gitignored). Test fixtures are sanitized/fake data, not
-  real captures — every identifying field (serial, model, IP), not just
-  serial/IP — so the test suite still runs for anyone without the actual
+  real captures, every identifying field (serial, model, IP), not just
+  serial/IP, so the test suite still runs for anyone without the actual
   hardware.
-- Describe personal lab gear as generic/virtual in anything committed —
-  vendor + OS only (e.g. "Extreme EXOS, virtual lab instance"), never
-  exact model numbers, serials, or a claim of specific physical
-  hardware. Real hardware can still be used to actually test against;
-  just don't say so in anything that gets committed.
-- Don't persist prompted/discovered device creds to disk in plaintext —
-  in-memory for the run is fine; use an OS keychain (e.g. `keyring`) if
+- Keep personal lab gear descriptions generic in anything committed:
+  vendor and general type only, not exact model numbers or serials.
+- Don't persist prompted/discovered device creds to disk in plaintext.
+  In-memory for the run is fine, use an OS keychain (e.g. `keyring`) if
   persistence across runs is ever needed, not a growing `.env`.
-- Before every commit: `git diff` / `git status` — check nothing sensitive
+- Before every commit: `git diff` / `git status`, check nothing sensitive
   snuck in.
 - If a secret leaks into a commit anyway: rotate it immediately, assume
   it's burned.
@@ -51,10 +48,10 @@ project-name/
 
 ## Automation principles
 
-- Idempotent where possible — running it twice shouldn't double the
+- Idempotent where possible, running it twice shouldn't double the
   damage.
 - Automate the boring/repetitive stuff, not the judgment calls.
-- Fail loudly, not silently — log what happened, what failed, why.
+- Fail loudly, not silently, log what happened, what failed, why.
 - Test the unhappy path too (bad creds, unreachable device, timeouts),
   not just the demo path.
 
@@ -62,24 +59,9 @@ project-name/
 
 ## Tech stack (and why)
 
-- **Python** — most automation logic, API integrations, AI glue
-- **Ansible** — network device automation, config management (agentless)
-- **Bash** — quick scripts, environment setup
-- **Docker** — local dev, running supporting services
-- **Terraform** — IaC, mostly for later cloud stuff
-- **Git/GitHub** — version control, issues, PRs
-
----
-
-## AI usage
-
-Using AI (Claude/LLMs) here for: drafting docs, summarizing notes,
-boilerplate code, brainstorming approach. Not for: making unsupervised
-changes to real infrastructure, or as a source of truth I don't
-double-check.
-
-Rule of thumb: AI drafts, I review before anything ships or touches a
-real device.
-
-Don't feed it real credentials, customer PII, or actual customer configs
-— sanitize or fake the data first.
+- **Python**: most automation logic, API integrations, glue code
+- **Ansible**: network device automation, config management (agentless)
+- **Bash**: quick scripts, environment setup
+- **Docker**: local dev, running supporting services
+- **Terraform**: IaC, mostly for later cloud stuff
+- **Git/GitHub**: version control, issues, PRs
