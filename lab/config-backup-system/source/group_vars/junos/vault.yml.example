@@ -1,0 +1,2 @@
+vault_junos_user: admin
+vault_junos_password: changeme

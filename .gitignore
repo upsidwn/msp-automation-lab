@@ -23,3 +23,13 @@ production/*/output/*.csv
 # Local device lists for run.py --devices-file (real IPs), never commit
 lab/*/devices/
 production/*/devices/
+
+# Ansible real inventory/vault (real IPs, encrypted-or-not creds), never commit
+lab/*/source/inventory/hosts.yml
+production/*/source/inventory/hosts.yml
+lab/*/source/group_vars/*/vault.yml
+production/*/source/group_vars/*/vault.yml
+
+# Config backups (real device configs), never commit
+lab/config-backup-system/output/*
+production/config-backup-system/output/*
