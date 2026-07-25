@@ -4,3 +4,7 @@ all:
       hosts:
         lab-switch-1:
           ansible_host: 192.0.2.10
+    exos:
+      hosts:
+        lab-switch-2:
+          ansible_host: 192.0.2.20

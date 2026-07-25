@@ -1,0 +1,4 @@
+ansible_connection: ansible.netcommon.network_cli
+ansible_network_os: community.network.exos
+ansible_user: "{{ vault_exos_user }}"
+ansible_password: "{{ vault_exos_password }}"

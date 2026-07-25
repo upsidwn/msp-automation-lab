@@ -75,10 +75,51 @@ notes (a slow-to-respond device needing `-Pn`/`--thorough` rather than
 the fast default) came up again here independently, this switch is
 just slow to answer network probes in general, not specific to nmap.
 
+## EXOS: no maintained collection exists
+
+Went looking for an EXOS-equivalent to `juniper.device` and came up
+short. `extremenetworks.exos` isn't a real package on Galaxy.
+`community.network` has `exos_config`/`exos_command` modules, but the
+whole collection is marked deprecated in its own module docs
+(`alternative: Unknown`), not a "use the newer one" situation like
+`junipernetworks.junos` -> `juniper.device` was.
+
+The connection plugins are the part that actually matters here, though:
+EXOS talks `network_cli` (SSH + CLI scraping), not netconf, and
+`community.network` is the only source for the EXOS-specific
+cliconf/terminal plugins that teach Ansible how to handle its prompts.
+Nothing else provides those. So the plan is: keep using
+`community.network`'s connection plugins (`ansible_network_os:
+community.network.exos`), but skip its deprecated `exos_config` module
+and use the actively-maintained generic `ansible.netcommon.cli_command`
+instead, running `show config` (confirmed live via manual SSH, this
+switch's actual command for a full config dump) and writing the output
+to a timestamped file by hand with `ansible.builtin.copy`, matching the
+same `<hostname>_config.<date>@<time>` naming `junos_config`'s backup
+option uses automatically. `ansible.builtin.strftime` (a core Ansible
+filter, not a dependency) builds the timestamp on the control node
+since these plays run with `gather_facts: no`.
+
+Real limitation, not swept under the rug: this whole path leans on a
+collection with no maintained future. If `community.network`'s EXOS
+plugins ever stop working on a newer ansible-core, the honest fallback
+is hand-writing a terminal/cliconf plugin, or dropping to `network_cli`
+with `ansible.netcommon.cli_command`'s own more primitive prompt
+handling. Not needed yet, just the known ceiling here.
+
+## Live run confirmed (EXOS)
+
+`ansible-playbook backup.yml --ask-vault-pass --limit exos` connected
+over SSH via `community.network`'s cliconf/terminal plugins, ran `show
+config`, and wrote a real 283-line backup
+(`lab-switch-2_config.<timestamp>`) to `output/`. Same
+`output/*`-pattern gitignore coverage as the Junos side, confirmed.
+
 ## Next up
 
-- EXOS support, no Extreme-specific Ansible collection has been
-  investigated yet, may end up needing `ansible.netcommon`'s generic
-  `cli_command`/`cli_config` instead of a vendor collection.
-- Dynamic inventory bridge from `discover.py`'s output, once the static
-  version above is proven working.
+- Feed inventory from `discover.py`'s output instead of a static file.
+  IPs/device lists are safe to carry over between tools since they
+  aren't sensitive the way credentials are; a shared credential store
+  (e.g. the `keyring` package already flagged in `docs/NOTES.md`)
+  across tools is a real but separate decision, deliberately not being
+  chased right now since nothing's demanding it yet.

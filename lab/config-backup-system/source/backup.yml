@@ -16,3 +16,31 @@
         backup: yes
         backup_options:
           dir_path: "{{ playbook_dir }}/../output"
+
+- name: Back up EXOS running config
+  hosts: exos
+  gather_facts: no
+
+  tasks:
+    - name: Make sure the output directory exists (git doesn't track empty folders)
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../output"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Pull the running config
+      ansible.netcommon.cli_command:
+        command: show config
+      register: exos_running_config
+
+    - name: Save it to a timestamped local file
+      # No maintained EXOS-specific module has a built-in backup option
+      # like junos_config's (community.network.exos_config exists but the
+      # whole collection is deprecated, "alternative: Unknown"). Same
+      # naming convention as the Junos side, built by hand instead of
+      # relying on a module option.
+      ansible.builtin.copy:
+        content: "{{ exos_running_config.stdout }}"
+        dest: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_config.{{ '%Y-%m-%d@%H:%M:%S' | strftime }}"
+      delegate_to: localhost
