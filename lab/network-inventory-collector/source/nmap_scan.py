@@ -36,6 +36,30 @@ def _stream_progress(pipe):
     pipe.close()
 
 
+def _run_streaming(cmd):
+    """Runs cmd, streaming stderr live via _stream_progress while
+    capturing stdout to return whole. Reads each stream on its own file
+    descriptor (main thread on stdout, the progress thread on stderr)
+    rather than subprocess.communicate(), which tries to read both
+    streams itself. That races against the progress thread already
+    reading stderr and threw "Bad file descriptor", confirmed live
+    against a real scan.
+    """
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    progress_thread = threading.Thread(target=_stream_progress, args=(proc.stderr,))
+    progress_thread.start()
+
+    stdout = proc.stdout.read()
+    proc.stdout.close()
+    proc.wait()
+    progress_thread.join()
+
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
+
+    return stdout
+
+
 def scan(cidr, ports=DEFAULT_PORTS, thorough=False):
     cmd = ["nmap", "-sT", "-sV", "--open", "-p", ports, "--stats-every", "10s"]
 
@@ -46,17 +70,7 @@ def scan(cidr, ports=DEFAULT_PORTS, thorough=False):
 
     cmd += ["-oX", "-", cidr]
 
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    progress_thread = threading.Thread(target=_stream_progress, args=(proc.stderr,))
-    progress_thread.start()
-
-    stdout, _ = proc.communicate()
-    progress_thread.join()
-
-    if proc.returncode != 0:
-        raise subprocess.CalledProcessError(proc.returncode, cmd)
-
-    return parse_xml(stdout)
+    return parse_xml(_run_streaming(cmd))
 
 
 def parse_xml(xml_text):

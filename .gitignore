@@ -19,3 +19,7 @@ lab/*/output/*.json
 lab/*/output/*.csv
 production/*/output/*.json
 production/*/output/*.csv
+
+# Local device lists for run.py --devices-file (real IPs), never commit
+lab/*/devices/
+production/*/devices/
