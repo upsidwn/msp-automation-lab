@@ -36,6 +36,45 @@ def try_ssh_device_types(host, pool, device_types):
     return None
 
 
+def prompt_and_retry_ssh(host, pool, device_types):
+    """Opt-in interactive fallback for when try_ssh_device_types comes up
+    empty -- meant to be used behind an explicit flag (discover.py's
+    --prompt-on-auth-failure), not by default. A batch scan shouldn't stop
+    for keyboard input unless asked to.
+
+    Unlike connect_with_pool, this host wasn't something the user chose to
+    add by hand -- it just showed up during a scan with SSH open. So this
+    asks once whether to bother at all; "no" moves on immediately. A "yes"
+    loops entering credentials and tries each against every device_type in
+    turn (same wrong-guess handling as try_ssh_device_types), until one
+    works or the user declines to keep trying. Appends the working
+    credential to the pool for the rest of the run.
+    """
+    answer = input(
+        f"\n{host} has SSH open but no known credential worked. "
+        f"Try entering credentials for it? (y/n): "
+    ).strip().lower()
+    if answer != "y":
+        return None
+
+    while True:
+        username = input(f"Username for {host}: ")
+        password = getpass.getpass(f"Password for {host}: ")
+        cred = {"username": username, "password": password}
+
+        for device_type in device_types:
+            try:
+                conn = ConnectHandler(device_type=device_type, host=host, **cred)
+            except (SSHException, NetmikoBaseException):
+                continue
+            pool.append(cred)
+            return device_type, conn
+
+        retry = input("Auth failed against all known vendors -- try again? (y/n): ").strip().lower()
+        if retry != "y":
+            return None
+
+
 def connect_with_pool(device_type, host, pool):
     for cred in pool:
         try:

@@ -7,7 +7,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
-from discover import discover
+from discover import discover, main
+from subnet_detect import SubnetDetectionError
 
 
 def _candidate(ip, ports):
@@ -105,6 +106,84 @@ def test_unifi_candidate_falls_back_to_unidentified_on_request_error():
 
     assert records == []
     assert len(unidentified) == 1
+
+
+def test_auth_failure_prompt_not_used_by_default():
+    candidates = [_candidate("10.0.0.9", [22])]
+
+    with patch("discover.scan", return_value=candidates), \
+         patch("discover.load_credential_pool", return_value=[]), \
+         patch("discover.try_ssh_device_types", return_value=None), \
+         patch("discover.prompt_and_retry_ssh") as mock_prompt, \
+         patch("discover.arp_lookup.get_mac", return_value=None), \
+         patch("discover.oui_lookup.get_vendor", return_value=None):
+        records, unidentified = discover("10.0.0.0/24")
+
+    mock_prompt.assert_not_called()
+    assert records == []
+    assert len(unidentified) == 1
+
+
+def test_auth_failure_falls_back_to_interactive_prompt_when_enabled():
+    candidates = [_candidate("10.0.0.8", [22])]
+    fake_record = {"host": "10.0.0.8", "vendor": "juniper", "model": "lab-switch-3"}
+
+    with patch("discover.scan", return_value=candidates), \
+         patch("discover.load_credential_pool", return_value=[]), \
+         patch("discover.try_ssh_device_types", return_value=None), \
+         patch("discover.prompt_and_retry_ssh", return_value=("juniper_junos", MagicMock())), \
+         patch("discover.SSH_COLLECTORS", {"juniper_junos": lambda conn, host: fake_record}):
+        records, unidentified = discover("10.0.0.0/24", prompt_on_auth_failure=True)
+
+    assert records == [fake_record]
+    assert unidentified == []
+
+
+def test_auth_failure_prompt_declined_falls_back_to_unidentified():
+    candidates = [_candidate("10.0.0.10", [22])]
+
+    with patch("discover.scan", return_value=candidates), \
+         patch("discover.load_credential_pool", return_value=[]), \
+         patch("discover.try_ssh_device_types", return_value=None), \
+         patch("discover.prompt_and_retry_ssh", return_value=None), \
+         patch("discover.arp_lookup.get_mac", return_value=None), \
+         patch("discover.oui_lookup.get_vendor", return_value=None):
+        records, unidentified = discover("10.0.0.0/24", prompt_on_auth_failure=True)
+
+    assert records == []
+    assert len(unidentified) == 1
+
+
+def test_main_auto_detects_cidr_when_none_given():
+    with patch("sys.argv", ["discover.py"]), \
+         patch("discover.detect_local_cidr", return_value="10.0.0.0/24"), \
+         patch("discover.discover", return_value=([], [])) as mock_discover, \
+         patch("builtins.open"), \
+         patch("json.dump"):
+        main()
+
+    assert mock_discover.call_args.args[0] == "10.0.0.0/24"
+
+
+def test_main_skips_detection_when_cidr_given_explicitly():
+    with patch("sys.argv", ["discover.py", "10.1.2.0/24"]), \
+         patch("discover.detect_local_cidr") as mock_detect, \
+         patch("discover.discover", return_value=([], [])) as mock_discover, \
+         patch("builtins.open"), \
+         patch("json.dump"):
+        main()
+
+    mock_detect.assert_not_called()
+    assert mock_discover.call_args.args[0] == "10.1.2.0/24"
+
+
+def test_main_gives_up_cleanly_when_detection_fails():
+    with patch("sys.argv", ["discover.py"]), \
+         patch("discover.detect_local_cidr", side_effect=SubnetDetectionError("no route")), \
+         patch("discover.discover") as mock_discover:
+        main()
+
+    mock_discover.assert_not_called()
 
 
 def test_no_open_relevant_ports_is_unidentified():

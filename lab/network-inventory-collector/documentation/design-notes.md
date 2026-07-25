@@ -214,13 +214,78 @@ makes that a smaller concern than it first sounds). Real Tier B/C items
 from the roadmap discussion, not abandoned -- just sequenced after a
 working v1 exists.
 
+## Privilege model decision
+
+Decided: opt-in elevated mode, per-tool, not blanket-sudo-at-startup.
+
+The collector stays unprivileged by default (current `-sT` + `-PS` +
+`arp -n` approach needs no root at all). When a feature that genuinely
+needs elevated privileges gets built -- `tshark` (passive ARP capture),
+`lldpd` (LLDP neighbor discovery), nmap `-O`/`-sS` (OS detection / SYN
+scan) -- it prompts for sudo at the moment it's about to run that
+specific operation, explains what it's for and why, and elevates only
+that one call. Not "ask once at launch, run the whole program as root
+from then on."
+
+A session-level "allow sudo for everything" override is fine as a
+convenience for repeat runs, but per-tool prompting is the default,
+not the fallback. Same shape as how this app itself asks for approval
+per tool call rather than blanket-approving a whole session up front.
+
+Not building the actual escalation mechanism yet -- there's no
+privileged feature to hang it on. This gets built alongside whichever
+of `tshark`/`lldpd`/`-O` lands first, not before.
+
+## run.py vs. discover.py, and devices.yml's fate
+
+Decided: `run.py` and `discover.py` stay as two separate entry points,
+by design, not a precursor/successor relationship -- they serve
+genuinely different workflows. `run.py` is manual/interactive (human
+knows the IP, wants one device right now, may not have credentials for
+it yet -- `connect_with_pool` prompts and grows the pool). `discover.py`
+is automatic/batch (sweep a whole subnet with credentials already on
+hand, no keyboard interaction by default).
+
+`devices.yml` (a hand-maintained static device list, originally floated
+as a stepping stone before discovery existed) stays on the table as a
+possible future feature rather than being closed out -- some sites won't
+want a live network scan on every run, and a static list is a legitimate
+alternative input for the future Ansible dynamic-inventory bridge, not
+just a workaround for discovery not existing yet. Not building it now --
+nothing's asking for it yet -- just no longer treating it as "obsoleted
+by discover.py existing."
+
+**Auth-failure gap, closed for v1**: `discover.py` used to silently bucket
+a host with SSH open but no working pool credential into `unidentified`,
+same as a host it had no read on at all. Added an opt-in
+`--prompt-on-auth-failure` flag (`discover.py`, `auth.prompt_and_retry_ssh`)
+that, only when passed, pauses on exactly that case, asks once whether to
+bother entering credentials for this specific host, and on success grows
+the pool for the rest of the run -- same shape as `connect_with_pool`,
+just opt-in and scoped to hosts nmap already proved have SSH open. Off by
+default: a batch scan across a whole subnet shouldn't stop for keyboard
+input unless asked to.
+
+## Subnet auto-detection (done)
+
+`discover.py`'s `cidr` argument is now optional. Same idea as `ip route
+get`/`route get` on the command line: ask the OS which interface would
+be used to reach the outside world (a UDP `connect()` to a public IP,
+nothing actually sent, just picks a route), then read that interface's
+netmask. New module `subnet_detect.py` uses `psutil` for the netmask
+lookup rather than hand-parsing `ifconfig`/`ip addr` text, which differs
+enough between macOS and Linux that it's not worth reimplementing --
+same call already made for nmap/arp. Confirmed live against this dev
+box, picked up its real local subnet correctly on the first try.
+
+If detection fails (no default route, e.g. offline or a weird network
+setup), `discover.py` prints a clear message and asks for an explicit
+CIDR instead of guessing. Explicit CIDR always overrides auto-detection
+when given.
+
 ## Next up
 
-- The "embrace sudo or not" decision, deliberately, before touching
-  `tshark`/`lldpd`/OS-detection.
-- Multi-device loop already exists (`run.py`) for the SSH vendors; a
-  real device *list* (`devices.yml` or similar) may end up superseded
-  by discovery itself rather than being a separate precursor step.
-- UniFi per-port/per-radio detail, if a deeper API endpoint exists for it.
-- Subnet auto-detection for `discover.py`, instead of requiring an
-  explicit CIDR every run.
+- UniFi per-port/per-radio detail stays the known v1 limitation, on
+  purpose. Would need live testing against the real controller to find
+  out whether a deeper endpoint even exists, and nothing's asking for
+  that detail yet, so parked rather than chased for its own sake.
