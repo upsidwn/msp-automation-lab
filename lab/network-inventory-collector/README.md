@@ -11,12 +11,32 @@ collector (`collect_unifi.py`) since it works fundamentally differently
 ## Quick start
 
 ```
+pip install -r source/requirements.txt
+cp .env.example .env   # then fill in real values
 python source/menu.py
 ```
 
-Prints a numbered list of every tool in this project, tells you what
-each one needs before running it, and hands off to it. Run any script
-in `source/` directly instead if you'd rather skip the menu.
+Prints a numbered list of every tool below, explains what it needs
+right before running it, and hands off to it. Any script in `source/`
+also runs fine on its own without the menu, e.g. `python
+source/discover.py 192.168.1.0/24`.
+
+1. **Auto-discover a subnet**, nmap scan of a whole CIDR (auto-detects
+   your local one, or type a different one), tries anything with SSH
+   open against your credential pool and sends UniFi controllers
+   through the API path instead. Point it at a network and see what's
+   on it. Needs `nmap` installed (`brew install nmap` on macOS).
+2. **Scan for Extreme EXOS devices only**, same scan as above, filtered
+   down to just EXOS afterward.
+3. **Manual multi-device collection**, type a vendor and IP in one at
+   a time, or point it at a CSV list (`vendor,host` per line) if you
+   already have one.
+4. **Single Juniper device**, a quick one-off pull from one Junos box.
+5. **UniFi controller**, pulls every adopted device from a console in
+   one API call.
+
+Options 3-5 will ask whether to use `.env` or let you type a host/API
+key/credentials in on the spot instead.
 
 ## What it does
 
@@ -102,6 +122,7 @@ back to disk). See `source/auth.py` and `source/config.py`.
 - `source/subnet_detect.py`: figures out the local machine's own subnet, for when discover.py isn't given an explicit CIDR
 - `source/arp_lookup.py`: reads a host's MAC from the OS's own ARP cache, no elevated privileges needed
 - `source/oui_lookup.py`: MAC → manufacturer lookup (IEEE OUI registry via `mac-vendor-lookup`)
+- `.env.example`: every env var the tools read, copy to `.env` and fill in real values
 - `tests/fixtures/*`: sanitized fixtures (fake serials/models/IPs/MACs, real format), used by the parser tests
 
 ## System requirements
