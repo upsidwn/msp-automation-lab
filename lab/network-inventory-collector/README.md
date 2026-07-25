@@ -45,12 +45,6 @@ report: hostname, vendor, model, serial, firmware, interfaces, IPs.
 Basically automating the "log into every device and write down what it
 is" step.
 
-## Lab gear
-
-- Juniper switch, Junos, vanilla/no real config (safest to break, build here first)
-- Extreme EXOS, virtual lab instance (EVE-NG or similar)
-- Ubiquiti, UniFi controller-managed (UDM/Cloud Key)
-
 ## Scope for v1
 
 - Static list of devices to start, no auto-discovery yet
