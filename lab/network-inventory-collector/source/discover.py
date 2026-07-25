@@ -18,9 +18,10 @@ import collector as junos_collector
 import collector_exos as exos_collector
 import collector_unifi
 import oui_lookup
-from auth import try_ssh_device_types
+from auth import prompt_and_retry_ssh, try_ssh_device_types
 from config import MissingConfigError, load_credential_pool, load_unifi_config
 from nmap_scan import scan
+from subnet_detect import SubnetDetectionError, detect_local_cidr
 
 load_dotenv()
 
@@ -30,8 +31,10 @@ SSH_COLLECTORS = {
 }
 
 
-def dispatch_ssh(host, pool):
+def dispatch_ssh(host, pool, prompt_on_auth_failure=False):
     result = try_ssh_device_types(host, pool, list(SSH_COLLECTORS.keys()))
+    if result is None and prompt_on_auth_failure:
+        result = prompt_and_retry_ssh(host, pool, list(SSH_COLLECTORS.keys()))
     if result is None:
         return None
 
@@ -66,7 +69,7 @@ def enrich_unidentified(candidate):
     return {**candidate, "mac": mac, "mac_vendor": vendor}
 
 
-def discover(cidr, thorough=False):
+def discover(cidr, thorough=False, prompt_on_auth_failure=False):
     pool = load_credential_pool()
 
     try:
@@ -84,7 +87,7 @@ def discover(cidr, thorough=False):
         found = False
 
         if 22 in ports:
-            record = dispatch_ssh(host, pool)
+            record = dispatch_ssh(host, pool, prompt_on_auth_failure=prompt_on_auth_failure)
             if record:
                 records.append(record)
                 print(f"OK: {host} -- {record['vendor']} {record.get('model')}")
@@ -110,7 +113,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Scan a subnet and auto-collect inventory from anything identifiable."
     )
-    parser.add_argument("cidr", help="Target CIDR to scan, e.g. 192.168.1.0/24")
+    parser.add_argument(
+        "cidr",
+        nargs="?",
+        default=None,
+        help=(
+            "Target CIDR to scan, e.g. 192.168.1.0/24. If omitted, auto-detects "
+            "the local machine's own subnet (the one its default route is on)."
+        ),
+    )
     parser.add_argument(
         "--thorough",
         action="store_true",
@@ -120,10 +131,31 @@ def main():
             "host can add minutes, not seconds. Use for a deliberate final pass, not routine runs."
         ),
     )
+    parser.add_argument(
+        "--prompt-on-auth-failure",
+        action="store_true",
+        help=(
+            "When a host has SSH open but no pool credential works against any known "
+            "vendor, pause and offer to enter credentials for it right there instead of "
+            "silently marking it unidentified. Off by default -- a batch scan shouldn't "
+            "stop for keyboard input unless asked to."
+        ),
+    )
     args = parser.parse_args()
 
+    cidr = args.cidr
+    if cidr is None:
+        try:
+            cidr = detect_local_cidr()
+        except SubnetDetectionError as e:
+            print(f"{e} Pass a CIDR explicitly, e.g. `python discover.py 192.168.1.0/24`.")
+            return
+        print(f"No CIDR given -- auto-detected local subnet: {cidr}")
+
     try:
-        records, unidentified = discover(args.cidr, thorough=args.thorough)
+        records, unidentified = discover(
+            cidr, thorough=args.thorough, prompt_on_auth_failure=args.prompt_on_auth_failure
+        )
     except FileNotFoundError:
         print("nmap not found -- install it first (e.g. `brew install nmap` on macOS).")
         return
