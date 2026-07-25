@@ -8,6 +8,16 @@ collector (`collect_unifi.py`) since it works fundamentally differently
 (see Scope below). Lives in `lab/` until it's stable enough to move to
 `production/`.
 
+## Quick start
+
+```
+python source/menu.py
+```
+
+Prints a numbered list of every tool in this project, tells you what
+each one needs before running it, and hands off to it. Run any script
+in `source/` directly instead if you'd rather skip the menu.
+
 ## What it does
 
 Connects to network devices and pulls together a standard inventory
@@ -85,7 +95,8 @@ back to disk). See `source/auth.py` and `source/config.py`.
 - `source/collector_unifi.py`: UniFi Integration API calls + record building
 - `source/collect.py`: single-device Juniper CLI: connect → parse → write JSON/CSV
 - `source/collect_unifi.py`: standalone UniFi CLI: one API key → every device → write JSON
-- `source/run.py`: interactive multi-device/multi-vendor loop (Juniper/EXOS), shared pool, combined output
+- `source/run.py`: multi-device/multi-vendor collection (Juniper/EXOS), shared pool, combined output. Type devices in one at a time, or pass `--devices-file` with a vendor,host CSV to skip the prompting
+- `source/menu.py`: single entry point, lists every tool above and runs whichever one you pick as a subprocess
 - `source/nmap_scan.py`: runs nmap (plain TCP connect scan, no sudo needed), parses XML into candidate hosts
 - `source/discover.py`: auto-discovery entry point: scan a CIDR (or auto-detect the local one), dispatch each candidate to the right collector, write combined output
 - `source/subnet_detect.py`: figures out the local machine's own subnet, for when discover.py isn't given an explicit CIDR

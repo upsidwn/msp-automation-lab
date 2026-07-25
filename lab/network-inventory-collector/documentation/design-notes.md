@@ -283,6 +283,70 @@ setup), `discover.py` prints a clear message and asks for an explicit
 CIDR instead of guessing. Explicit CIDR always overrides auto-detection
 when given.
 
+## Single entry point (menu.py)
+
+The collector was five separate scripts with no common front door. Added
+`menu.py`: prints a numbered list, says what each tool needs, then hands
+off to that tool's own CLI as a subprocess (inherits the terminal, so
+`run.py`'s prompts and `discover.py`'s live progress output both still
+work exactly as they do run directly). Adding a new tool later is one
+more entry in a list, nothing structural changes.
+
+A couple of pieces got a bit smarter specifically to make the menu
+useful rather than just a wrapper:
+
+- **Subnet confirm/override**: `menu.py` runs `detect_local_cidr()`
+  itself before launching `discover.py`, shows what it found, and asks
+  whether to scan that or type a different CIDR instead. `discover.py`
+  itself still auto-detects on its own when run directly with no CIDR,
+  this is just a confirmation step in front of it.
+- **Device list file for run.py**: `run.py` now takes an optional
+  `--devices-file`, a plain two-column CSV (`vendor,host`, vendor is
+  `juniper` or `exos`). Given a file, it collects that list without
+  prompting for each device; without one, the original type-them-in-one-
+  at-a-time flow is unchanged. `menu.py` asks which you want.
+- **Host/credential override for the one-shot tools**: `collect.py` and
+  `collect_unifi.py` only ever read their target from environment
+  variables (`NIC_JUNOS_HOST`, `NIC_UNIFI_HOST`, `NIC_UNIFI_API_KEY`).
+  Since `menu.py` launches each as a subprocess, it can pass a modified
+  `env` for just that one launch, overriding those variables with
+  whatever gets typed into the menu. Neither script needed any changes
+  for this. Same trick for a one-off credential: `menu.py` can seed
+  `NIC_CRED_1_USER`/`NIC_CRED_1_PASS` for that subprocess and the
+  existing credential-pool logic in `auth.py` picks it up like it
+  always does.
+
+`connect_test.py` stays out of the menu on purpose, it's a throwaway
+smoke test, not a real tool.
+
+**Vendor-filtered scan**: there's no standalone single-device EXOS
+script (unlike `collect.py` for Juniper), so a menu option added instead:
+run the normal `discover.py` subnet scan unchanged, then read back its
+own `output/discover_results.json` afterward and print just the records
+for one vendor (`extreme` for the EXOS option). The scan itself still
+finds everything on the subnet; this only narrows what gets shown after.
+Written as a generic `_filter_and_report(vendor)` helper so the same
+pattern covers other vendors later without duplicating anything.
+
+**Real nmap concurrency bug found and fixed during live testing**:
+`nmap_scan.scan()`'s original implementation had a background thread
+reading `stderr` for live progress while the main thread called
+`proc.communicate()`, which also tries to read `stderr` itself. Two
+readers on the same file descriptor, confirmed live as an `OSError:
+[Errno 9] Bad file descriptor`. Existing tests never caught this since
+they only test `parse_xml()` directly, never the actual subprocess
+plumbing. Fixed by having the main thread read only `stdout` directly
+(`proc.stdout.read()`) and calling `proc.wait()` instead of
+`communicate()`, so the two threads never touch the same descriptor.
+New `test_run_streaming_*` tests in `test_nmap_scan.py` exercise the
+real subprocess path (not mocked) to cover this going forward.
+
+**Local device lists**: `run.py --devices-file` reads a path anywhere on
+disk, so there's nothing stopping someone from pointing it at a file
+inside the repo. Added `lab/*/devices/` to `.gitignore` (same pattern as
+`output/`) as a conventional safe spot, and `menu.py` suggests it when
+asking for the file path.
+
 ## Next up
 
 - UniFi per-port/per-radio detail stays the known v1 limitation, on

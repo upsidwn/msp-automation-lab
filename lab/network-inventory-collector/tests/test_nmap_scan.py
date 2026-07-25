@@ -1,9 +1,12 @@
 import os
+import subprocess
 import sys
+
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
-from nmap_scan import parse_xml
+from nmap_scan import _run_streaming, parse_xml
 
 # Inline sample rather than a fixture file -- unlike the vendor collectors,
 # nmap doesn't need specific hardware to test against (anyone running this
@@ -86,3 +89,24 @@ def test_parse_xml_handles_missing_version():
     http = next(p for p in by_ip["192.0.2.10"]["ports"] if p["port"] == 80)
 
     assert http["version"] is None
+
+
+def test_run_streaming_captures_stdout_while_stderr_streams_concurrently():
+    # Real subprocess, not mocked. This is the exact concurrency path
+    # (a background thread reading stderr while the main thread reads
+    # stdout) that threw "Bad file descriptor" when both instead went
+    # through subprocess.communicate() at once.
+    script = (
+        "import sys\n"
+        "for i in range(20):\n"
+        "    print(f'progress {i}', file=sys.stderr)\n"
+        "print('the actual scan output')\n"
+    )
+    stdout = _run_streaming([sys.executable, "-c", script])
+
+    assert stdout == "the actual scan output\n"
+
+
+def test_run_streaming_raises_on_nonzero_exit():
+    with pytest.raises(subprocess.CalledProcessError):
+        _run_streaming([sys.executable, "-c", "import sys; sys.exit(1)"])
