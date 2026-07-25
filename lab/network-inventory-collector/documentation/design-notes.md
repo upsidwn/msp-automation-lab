@@ -126,12 +126,101 @@ real response shape, with fake IDs/MACs/IPs/names throughout.
   collector. The same Netmiko connection + env-based credential pattern
   built here should carry over directly when that project starts.
 
+## nmap-based discovery (v1 done)
+
+Auto-discovery scoped deliberately narrower than the full "moderate vs.
+thorough" tradeoff space discussed in the roadmap -- one clean, testable
+slice rather than trying to build the whole thing at once. Leans on
+mature existing tools (nmap, `arp`, IEEE's OUI registry) rather than
+hand-rolled scanning, both for reliability and because reimplementing
+what these already do well isn't a good use of time.
+
+**What shipped:**
+
+1. **Target**: explicit CIDR passed as a CLI arg (`python discover.py
+   <cidr>`), not auto-detected yet.
+2. **Scan**: `nmap -sT -sV --open -p 22,80,443 <cidr> -oX -` -- plain
+   TCP connect scan (no `-sS`/`-O`, so no `sudo` required), XML parsed
+   via stdlib `xml.etree.ElementTree` into `{ip, mac, ports}` candidates
+   (`nmap_scan.py`, tested in isolation with an inline XML sample rather
+   than a fixture file -- unlike vendor hardware, anyone running this
+   has a network to test against, so there's nothing real-world to
+   sanitize).
+   - **Discovery-probe fix, confirmed live against a real `/24`**: a
+     real, reachable device (SSH open, directly reachable in isolation)
+     got silently skipped by nmap's *default* host-discovery probes
+     (ICMP + a couple of fixed ports) -- not a timing/speed problem, a
+     wrong-probe-type problem. `-Pn` (skip discovery, port-scan every
+     IP directly) fixed it but at real cost: one slow-responding host
+     alone added 190+ seconds to the scan. The actual fix was using SYN
+     probes against our *own* target ports for discovery
+     (`-PS22,80,443`) instead of nmap's defaults -- found the missing
+     device *and* found more live hosts overall (14 vs. 6), landing
+     around 90-120s for a full `/24`, in line with what's acceptable
+     for a real site visit. `--host-timeout 90s` caps how long any
+     single host can eat into the scan. Full `-Pn` stays available as
+     an explicit `--thorough` opt-in for a deliberate final pass, not
+     the routine default.
+   - **Live progress**: `--stats-every 10s` streamed via a background
+     thread reading nmap's stderr in real time (`_stream_progress()`),
+     rather than us reimplementing per-host progress tracking nmap
+     already does -- good enough for a terminal-driven tool; the
+     eventual production form of this won't be terminal-driven anyway.
+3. **Dispatch**: candidates with port 22 open get tried against
+   `auth.try_ssh_device_types()` -- a *non-prompting* variant of the
+   pool logic, built specifically for discovery, where the vendor isn't
+   known yet. A wrong device_type guess against a real device doesn't
+   always fail the same way -- confirmed live it can raise
+   `NetmikoAuthenticationException`, `NetmikoTimeoutException`, *or*
+   `netmiko.exceptions.ReadTimeout` (a session-prep pattern mismatch --
+   this one crashed the first live test run since it isn't a subclass
+   of the other two; Netmiko's exceptions split across two unrelated
+   root classes, `SSHException` and `NetmikoBaseException`, so both are
+   caught now). Candidates with 443 open get tried against the UniFi
+   Integration API.
+4. **MAC + manufacturer enrichment** for anything that couldn't be
+   identified -- the case where this adds the most value, since an
+   identified Junos/EXOS/UniFi record already names its own vendor.
+   Considered `tshark` for passive ARP sniffing, but that (like
+   `lldpd`, like nmap's own `-O`) needs raw packet capture / elevated
+   privileges. Turned out unnecessary: reading the IP the same way
+   nmap already talked to it means the OS kernel already resolved the
+   MAC during that connection and cached it -- `arp -n <ip>`
+   (`arp_lookup.py`) reads that cache with **zero elevated privileges**,
+   confirmed live. Only works for hosts on the same local subnet as the
+   scanning box (routed traffic never reveals the far end's real MAC,
+   regardless of privilege level) -- which is exactly the use case that
+   matters here. Feeds into `oui_lookup.py` (the `mac-vendor-lookup`
+   package -- downloads/caches the IEEE OUI registry locally on first
+   use, works offline after that; worth knowing for a fully air-gapped
+   deployment, not a blocker otherwise). Confirmed live: an
+   unidentifiable host got flagged "possibly Raspberry Pi Trading Ltd"
+   -- genuinely useful field intel that wasn't available before.
+5. **Output**: same record schema, same `output/` write pattern as
+   everything else -- `{"records": [...], "unidentified": [...]}`.
+   Nothing nmap found gets silently dropped.
+6. **New files**: `nmap_scan.py`, `discover.py`, `arp_lookup.py`,
+   `oui_lookup.py`. Same separation of concerns as the rest of the
+   project -- "run an external tool" stays separate from "decide what
+   to do with results."
+
+**Explicitly deferred** to later work: subnet auto-detection, SNMP
+`sysDescr` sweep, multi-VLAN traversal, and the whole "does this tool
+embrace running as root" question (raised again by `-O`/`-sS` and
+`tshark`, on top of `lldpd` from earlier -- worth deciding once,
+deliberately, rather than piecemeal; the tool's actual deployment target
+being a dedicated appliance rather than someone's daily-driver laptop
+makes that a smaller concern than it first sounds). Real Tier B/C items
+from the roadmap discussion, not abandoned -- just sequenced after a
+working v1 exists.
+
 ## Next up
 
-- Multi-device loop already exists (`run.py`) for the SSH vendors; next
-  is a real device *list* (`devices.yml` or similar) instead of
-  prompting for one IP at a time -- precursor to real auto-discovery.
+- The "embrace sudo or not" decision, deliberately, before touching
+  `tshark`/`lldpd`/OS-detection.
+- Multi-device loop already exists (`run.py`) for the SSH vendors; a
+  real device *list* (`devices.yml` or similar) may end up superseded
+  by discovery itself rather than being a separate precursor step.
 - UniFi per-port/per-radio detail, if a deeper API endpoint exists for it.
-- All three vendors (Junos, EXOS, UniFi) now have working collectors --
-  next major piece is tying them together into the actual auto-discovery
-  flow described in the roadmap.
+- Subnet auto-detection for `discover.py`, instead of requiring an
+  explicit CIDR every run.

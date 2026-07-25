@@ -45,14 +45,21 @@ Dashboards, compliance checks, metrics. Grafana/Prometheus probably.
 Not committed to building all of these — just parked here so I don't
 forget them:
 
-- **Auto-discovery for the inventory collector** — SNMP sweep and/or
-  LLDP/CDP neighbor walk to find devices on a subnet instead of a manual
-  IP list, then apply known site credentials and dispatch to the right
-  vendor parser automatically. Goal: drop a NUC/laptop on a customer
-  network and have it self-inventory. UniFi gear stays a separate path
-  (ask the controller API for its device list, no discovery needed there).
-  Do this after 2-3 vendor collectors exist individually — it's a
-  dispatch layer on top of those, not something to build alongside them.
+- **Auto-discovery for the inventory collector** (in progress) — all
+  three vendor collectors (Junos, EXOS, UniFi) now exist, so this is the
+  active next piece. v1 leans on nmap (host/port/service discovery) +
+  the existing credential pool for dispatch, deliberately scoped
+  narrower than the full SNMP/LLDP/multi-VLAN vision — see
+  `lab/network-inventory-collector/documentation/design-notes.md` for
+  the actual plan and what's deferred to later passes.
+- **Ansible dynamic inventory bridge** — once the collector/discovery
+  tooling produces a real device list, expose it as an Ansible dynamic
+  inventory source (a script implementing Ansible's `--list` JSON
+  contract). Lets downstream config-management work (e.g. the
+  Configuration Backup System idea below) consume discovered devices
+  directly instead of duplicating inventory logic. Better fit for
+  Ansible here than trying to use it for discovery itself — Ansible
+  wants a known inventory to act on, not to go find unknown things.
 - Firmware compliance reporter
 - Network diagram generator
 - Customer environment doc generator

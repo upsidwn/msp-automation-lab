@@ -117,12 +117,12 @@
                 {
                     "name" : [
                     {
-                        "data" : "junos-ex-4300"
+                        "data" : "junos-ex-lab-switch-1"
                     }
-                    ], 
+                    ],
                     "comment" : [
                     {
-                        "data" : "JUNOS EX 4300 Software Suite [21.4R3.15]"
+                        "data" : "JUNOS EX lab-switch-1 Software Suite [21.4R3.15]"
                     }
                     ]
                 }, 
