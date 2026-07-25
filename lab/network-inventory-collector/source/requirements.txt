@@ -1,4 +1,5 @@
 netmiko>=4.3
 python-dotenv>=1.0
 requests>=2.31
+mac-vendor-lookup>=0.1.12
 pytest>=8.0

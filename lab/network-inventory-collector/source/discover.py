@@ -13,9 +13,11 @@ import subprocess
 import requests
 from dotenv import load_dotenv
 
+import arp_lookup
 import collector as junos_collector
 import collector_exos as exos_collector
 import collector_unifi
+import oui_lookup
 from auth import try_ssh_device_types
 from config import MissingConfigError, load_credential_pool, load_unifi_config
 from nmap_scan import scan
@@ -50,7 +52,21 @@ def dispatch_unifi(host, unifi_config):
         return None
 
 
-def discover(cidr):
+def enrich_unidentified(candidate):
+    """Adds a MAC + manufacturer guess to a candidate we couldn't
+    otherwise identify -- most valuable exactly here, since a fully
+    identified Junos/EXOS/UniFi record already tells you the vendor
+    from the device itself. Prefers nmap's own MAC when it has one,
+    falls back to reading the OS's ARP cache (see arp_lookup.py for why
+    that works without any elevated privileges).
+    """
+    mac = candidate["mac"] or arp_lookup.get_mac(candidate["ip"])
+    vendor = oui_lookup.get_vendor(mac)
+
+    return {**candidate, "mac": mac, "mac_vendor": vendor}
+
+
+def discover(cidr, thorough=False):
     pool = load_credential_pool()
 
     try:
@@ -58,7 +74,7 @@ def discover(cidr):
     except MissingConfigError:
         unifi_config = None
 
-    candidates = scan(cidr)
+    candidates = scan(cidr, thorough=thorough)
     records = []
     unidentified = []
 
@@ -82,8 +98,10 @@ def discover(cidr):
                 found = True
 
         if not found:
-            unidentified.append(candidate)
-            print(f"?? {host} -- open ports {sorted(ports)}, could not identify/authenticate")
+            entry = enrich_unidentified(candidate)
+            unidentified.append(entry)
+            vendor_hint = f", possibly {entry['mac_vendor']}" if entry["mac_vendor"] else ""
+            print(f"?? {host} -- open ports {sorted(ports)}, could not identify/authenticate{vendor_hint}")
 
     return records, unidentified
 
@@ -93,10 +111,19 @@ def main():
         description="Scan a subnet and auto-collect inventory from anything identifiable."
     )
     parser.add_argument("cidr", help="Target CIDR to scan, e.g. 192.168.1.0/24")
+    parser.add_argument(
+        "--thorough",
+        action="store_true",
+        help=(
+            "Skip host-discovery entirely and port-scan every IP directly (nmap -Pn). "
+            "Finds anything the fast default might miss, at real cost -- a single slow "
+            "host can add minutes, not seconds. Use for a deliberate final pass, not routine runs."
+        ),
+    )
     args = parser.parse_args()
 
     try:
-        records, unidentified = discover(args.cidr)
+        records, unidentified = discover(args.cidr, thorough=args.thorough)
     except FileNotFoundError:
         print("nmap not found -- install it first (e.g. `brew install nmap` on macOS).")
         return

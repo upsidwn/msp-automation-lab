@@ -40,12 +40,42 @@ def test_unmatched_ssh_candidate_is_unidentified():
 
     with patch("discover.scan", return_value=candidates), \
          patch("discover.load_credential_pool", return_value=[]), \
-         patch("discover.try_ssh_device_types", return_value=None):
+         patch("discover.try_ssh_device_types", return_value=None), \
+         patch("discover.arp_lookup.get_mac", return_value=None), \
+         patch("discover.oui_lookup.get_vendor", return_value=None):
         records, unidentified = discover("10.0.0.0/24")
 
     assert records == []
     assert len(unidentified) == 1
     assert unidentified[0]["ip"] == "10.0.0.2"
+
+
+def test_unidentified_candidate_gets_enriched_with_mac_and_vendor():
+    candidates = [_candidate("10.0.0.6", [22])]
+
+    with patch("discover.scan", return_value=candidates), \
+         patch("discover.load_credential_pool", return_value=[]), \
+         patch("discover.try_ssh_device_types", return_value=None), \
+         patch("discover.arp_lookup.get_mac", return_value="aa:bb:cc:dd:ee:ff"), \
+         patch("discover.oui_lookup.get_vendor", return_value="Some Vendor Inc"):
+        records, unidentified = discover("10.0.0.0/24")
+
+    assert unidentified[0]["mac"] == "aa:bb:cc:dd:ee:ff"
+    assert unidentified[0]["mac_vendor"] == "Some Vendor Inc"
+
+
+def test_unidentified_candidate_prefers_nmaps_own_mac_over_arp_lookup():
+    candidates = [_candidate("10.0.0.7", [22])]
+    candidates[0]["mac"] = "11:22:33:44:55:66"
+
+    with patch("discover.scan", return_value=candidates), \
+         patch("discover.load_credential_pool", return_value=[]), \
+         patch("discover.try_ssh_device_types", return_value=None), \
+         patch("discover.arp_lookup.get_mac") as mock_arp, \
+         patch("discover.oui_lookup.get_vendor", return_value=None):
+        discover("10.0.0.0/24")
+
+    mock_arp.assert_not_called()
 
 
 def test_unifi_candidate_dispatches_when_configured():
@@ -68,7 +98,9 @@ def test_unifi_candidate_falls_back_to_unidentified_on_request_error():
     with patch("discover.scan", return_value=candidates), \
          patch("discover.load_credential_pool", return_value=[]), \
          patch("discover.load_unifi_config", return_value={"host": "10.0.0.4", "api_key": "fake-key"}), \
-         patch("discover.collector_unifi.collect_all", side_effect=RequestsConnectionError()):
+         patch("discover.collector_unifi.collect_all", side_effect=RequestsConnectionError()), \
+         patch("discover.arp_lookup.get_mac", return_value=None), \
+         patch("discover.oui_lookup.get_vendor", return_value=None):
         records, unidentified = discover("10.0.0.0/24")
 
     assert records == []
@@ -79,7 +111,9 @@ def test_no_open_relevant_ports_is_unidentified():
     candidates = [_candidate("10.0.0.5", [8080])]
 
     with patch("discover.scan", return_value=candidates), \
-         patch("discover.load_credential_pool", return_value=[]):
+         patch("discover.load_credential_pool", return_value=[]), \
+         patch("discover.arp_lookup.get_mac", return_value=None), \
+         patch("discover.oui_lookup.get_vendor", return_value=None):
         records, unidentified = discover("10.0.0.0/24")
 
     assert records == []

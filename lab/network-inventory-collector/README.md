@@ -87,6 +87,9 @@ back to disk). See `source/auth.py` and `source/config.py`.
 - `source/collect_unifi.py` — standalone UniFi CLI: one API key → every device → write JSON
 - `source/run.py` — interactive multi-device/multi-vendor loop (Juniper/EXOS), shared pool, combined output
 - `source/nmap_scan.py` — runs nmap (plain TCP connect scan, no sudo needed), parses XML into candidate hosts
+- `source/discover.py` — auto-discovery entry point: scan a CIDR, dispatch each candidate to the right collector, write combined output
+- `source/arp_lookup.py` — reads a host's MAC from the OS's own ARP cache, no elevated privileges needed
+- `source/oui_lookup.py` — MAC → manufacturer lookup (IEEE OUI registry via `mac-vendor-lookup`)
 - `tests/fixtures/*` — sanitized fixtures (fake serials/models/IPs/MACs, real format), used by the parser tests
 
 ## System requirements

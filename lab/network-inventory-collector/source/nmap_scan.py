@@ -5,21 +5,58 @@
 # (SSH for the Junos/EXOS credential pool, HTTP/HTTPS for the UniFi API
 # check). MAC address is often unavailable without elevated privileges
 # -- callers should treat it as optional, not guaranteed.
+#
+# Discovery notes (confirmed live against a real /24): nmap's default
+# host-discovery probes (ICMP + a couple of fixed ports) can miss real,
+# reachable devices outright -- not a timing problem, a "wrong probe
+# type" problem. Using SYN probes against our own target ports for
+# discovery (-PS<ports>) instead of nmap's defaults fixed it, and found
+# *more* live hosts overall, not just the one that was missing.
+# --host-timeout caps how long any single slow host can eat into the
+# whole scan. -Pn (skip discovery, port-scan every IP directly) is
+# available as an explicit "thorough" opt-in -- confirmed live that one
+# slow host alone can cost 190+ seconds under -Pn, so it's not a good
+# default for a whole /24.
 
 import subprocess
+import threading
 import xml.etree.ElementTree as ET
 
 DEFAULT_PORTS = "22,80,443"
 
 
-def scan(cidr, ports=DEFAULT_PORTS):
-    result = subprocess.run(
-        ["nmap", "-sT", "-sV", "--open", "-p", ports, "-oX", "-", cidr],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return parse_xml(result.stdout)
+def _stream_progress(pipe):
+    """Prints nmap's --stats-every lines live as the scan runs, instead
+    of silently buffering them until the whole scan finishes.
+    """
+    for line in iter(pipe.readline, ""):
+        line = line.strip()
+        if line:
+            print(f"  [nmap] {line}")
+    pipe.close()
+
+
+def scan(cidr, ports=DEFAULT_PORTS, thorough=False):
+    cmd = ["nmap", "-sT", "-sV", "--open", "-p", ports, "--stats-every", "10s"]
+
+    if thorough:
+        cmd += ["-Pn"]
+    else:
+        cmd += [f"-PS{ports}", "--host-timeout", "90s"]
+
+    cmd += ["-oX", "-", cidr]
+
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    progress_thread = threading.Thread(target=_stream_progress, args=(proc.stderr,))
+    progress_thread.start()
+
+    stdout, _ = proc.communicate()
+    progress_thread.join()
+
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(proc.returncode, cmd)
+
+    return parse_xml(stdout)
 
 
 def parse_xml(xml_text):
