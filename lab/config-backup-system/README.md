@@ -40,6 +40,25 @@ ansible-playbook backup.yml --ask-vault-pass
 backs up every device in inventory; add `--limit junos` or `--limit
 exos` to target just one vendor.
 
+## Dynamic inventory, alternative to the static hosts.yml
+
+`source/dynamic_inventory.py` reads
+[lab/network-inventory-collector](../network-inventory-collector)'s own
+`discover.py` output and exposes it as Ansible inventory instead of
+hand-maintaining `hosts.yml`. Use it by pointing Ansible at it directly:
+
+```
+ansible-playbook backup.yml -i dynamic_inventory.py --ask-vault-pass
+```
+
+Groups devices by vendor (`juniper` -> `junos`, `extreme` -> `exos`),
+same group names the static inventory uses, so credentials still come
+from `group_vars/<group>/vars.yml` + `vault.yml` exactly the same way.
+UniFi records are skipped, no UniFi playbook exists here. Static
+`hosts.yml` still works and stays the default, this is an alternative
+source, not a replacement, point Ansible at whichever one you want with
+`-i`.
+
 ## Why Ansible here, not Netmiko like the collector
 
 Netmiko would work fine for this too. The point of this project is
@@ -58,15 +77,17 @@ for the actual tool choices made and why.
 - `source/group_vars/exos/vars.yml`: connection vars for the exos group (network_cli, network_os)
 - `source/group_vars/exos/vault.yml.example`: placeholder credential vars, encrypt after filling in
 - `source/backup.yml`: the playbook, one play per vendor
+- `source/dynamic_inventory.py`: alternative inventory source, reads `discover.py`'s output instead of a static file
 - `output/`: where backups land, gitignored (real device configs)
 - `tests/test_playbook.py`: validates the example files' YAML shape, runs `ansible-playbook --syntax-check`
+- `tests/test_dynamic_inventory.py`: validates the bridge script's output, including a real subprocess run
 
 ## Status
 
 - [x] Playbook scaffolded, syntax-checked, structure covered by tests
 - [x] Run live against the real Junos lab switch, confirmed working
 - [x] Run live against the real EXOS lab switch, confirmed working
-- [ ] Feed inventory from `discover.py`'s output instead of a static file
+- [x] Dynamic inventory from `discover.py`'s output, confirmed working via `ansible-inventory`
 
 ## Notes
 
