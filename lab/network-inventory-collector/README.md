@@ -37,6 +37,11 @@ source/discover.py 192.168.1.0/24`.
 6. **Firmware inventory report**, no new scan, reads whatever's
    already in `output/`, flags each device compliant/outdated against
    `known_good_firmware.json`. Asks before saving to a file.
+7. **Device diagram**, no new scan, draws every collected device
+   grouped by vendor with the real gateway on top when it can be
+   identified. Not a topology map, no link/port data exists yet (see
+   design-notes.md). Needs `graphviz` installed (`brew install
+   graphviz` on macOS).
 
 Options 3-5 will ask whether to use `.env` or let you type a host/API
 key/credentials in on the spot instead.
@@ -120,15 +125,16 @@ back to disk). See `source/auth.py` and `source/config.py`.
 - `source/arp_lookup.py`: reads a host's MAC from the OS's own ARP cache, no elevated privileges needed
 - `source/oui_lookup.py`: MAC → manufacturer lookup (IEEE OUI registry via `mac-vendor-lookup`)
 - `source/firmware_report.py`: no new scan, reads every `output/*.json` from previous runs, checks compliance against `known_good_firmware.json`, asks before saving to a file
+- `source/diagram.py`: no new scan, draws every collected device grouped by vendor, gateway on top when identifiable, no real link data (hub-and-spoke, not physical topology)
 - `known_good_firmware.json`: acceptable firmware versions per vendor, edit for your environment
 - `.env.example`: every env var the tools read, copy to `.env` and fill in real values
 - `tests/fixtures/*`: sanitized fixtures (fake serials/models/IPs/MACs, real format), used by the parser tests
 
 ## System requirements
 
-Beyond the Python packages in `requirements.txt`, `nmap` must be
-installed separately (it's a CLI tool, not a pip package). On macOS:
-`brew install nmap`.
+Beyond the Python packages in `requirements.txt`, `nmap` and `graphviz`
+must be installed separately (CLI tools, not pip packages). On macOS:
+`brew install nmap graphviz`.
 
 ## Notes
 

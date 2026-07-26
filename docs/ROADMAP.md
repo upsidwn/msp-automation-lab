@@ -60,8 +60,11 @@ forget them:
   directly instead of duplicating inventory logic. Better fit for
   Ansible here than trying to use it for discovery itself — Ansible
   wants a known inventory to act on, not to go find unknown things.
-- Firmware compliance reporter
-- Network diagram generator
+- ~~Firmware compliance reporter~~ done, `firmware_report.py`
+- ~~Device diagram generator~~ done, `diagram.py` (inventory diagram,
+  not real topology, see below)
+- Real network topology mapping (LLDP neighbor data), new collector
+  capability needed first, not a diagram tweak
 - Customer environment doc generator
 - Customer onboarding automation
 - Automated customer health reports
