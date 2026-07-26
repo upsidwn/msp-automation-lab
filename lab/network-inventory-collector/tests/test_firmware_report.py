@@ -6,7 +6,14 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
-from firmware_report import load_all_records, main, print_report, write_csv
+from firmware_report import (
+    check_compliance,
+    load_all_records,
+    load_known_good,
+    main,
+    print_report,
+    write_csv,
+)
 
 
 def _record(vendor, host, firmware, collected_at, **extra):
@@ -79,45 +86,70 @@ def test_dedupes_unifi_by_mac_not_shared_controller_host():
     assert len(records) == 2
 
 
+def test_load_known_good_missing_file_returns_empty(tmp_path):
+    assert load_known_good(str(tmp_path / "nope.json")) == {}
+
+
+def test_check_compliance_ok_when_version_matches():
+    record = _record("juniper", "10.0.0.1", "21.4R3.15", "2026-01-01T00:00:00Z")
+    known_good = {"juniper": ["21.4R3.15"]}
+
+    assert check_compliance(record, known_good) == "ok"
+
+
+def test_check_compliance_outdated_when_version_not_in_list():
+    record = _record("juniper", "10.0.0.1", "21.4R3.9", "2026-01-01T00:00:00Z")
+    known_good = {"juniper": ["21.4R3.15"]}
+
+    assert check_compliance(record, known_good) == "OUTDATED"
+
+
+def test_check_compliance_unknown_when_vendor_not_in_list():
+    record = _record("juniper", "10.0.0.1", "21.4R3.15", "2026-01-01T00:00:00Z")
+
+    assert check_compliance(record, {}) == "unknown"
+
+
 def test_print_report_handles_empty(capsys):
     print_report([])
 
     assert "No collected inventory found" in capsys.readouterr().out
 
 
-def test_print_report_includes_every_device(capsys):
+def test_print_report_includes_every_device_and_compliance(capsys):
     records = [
         _record("juniper", "10.0.0.1", "21.4R3.15", "2026-01-01T00:00:00Z"),
-        _record("extreme", "10.0.0.2", "30.7.1.4", "2026-01-01T00:00:00Z"),
+        _record("extreme", "10.0.0.2", "30.7.1.9", "2026-01-01T00:00:00Z"),
     ]
+    known_good = {"juniper": ["21.4R3.15"], "extreme": ["30.7.1.4"]}
 
-    print_report(records)
+    print_report(records, known_good)
     out = capsys.readouterr().out
 
-    assert "10.0.0.1" in out
-    assert "21.4R3.15" in out
-    assert "10.0.0.2" in out
-    assert "30.7.1.4" in out
+    assert "10.0.0.1" in out and "ok" in out
+    assert "10.0.0.2" in out and "OUTDATED" in out
 
 
-def test_write_csv_includes_all_fields(tmp_path):
+def test_write_csv_includes_all_fields_and_compliance(tmp_path):
     records = [_record("juniper", "10.0.0.1", "21.4R3.15", "2026-01-01T00:00:00Z")]
+    known_good = {"juniper": ["21.4R3.15"]}
     out_path = tmp_path / "firmware_report.csv"
 
-    write_csv(records, str(out_path))
+    write_csv(records, str(out_path), known_good)
 
     with open(out_path, newline="") as f:
         rows = list(csv.DictReader(f))
 
     assert len(rows) == 1
     assert rows[0]["firmware"] == "21.4R3.15"
-    assert rows[0]["vendor"] == "juniper"
+    assert rows[0]["compliance"] == "ok"
 
 
 def test_main_skips_save_when_declined():
     records = [_record("juniper", "10.0.0.1", "21.4R3.15", "2026-01-01T00:00:00Z")]
 
     with patch("firmware_report.load_all_records", return_value=records), \
+         patch("firmware_report.load_known_good", return_value={}), \
          patch("builtins.input", return_value="n"), \
          patch("firmware_report.write_csv") as mock_write:
         main()
@@ -129,6 +161,7 @@ def test_main_saves_when_confirmed():
     records = [_record("juniper", "10.0.0.1", "21.4R3.15", "2026-01-01T00:00:00Z")]
 
     with patch("firmware_report.load_all_records", return_value=records), \
+         patch("firmware_report.load_known_good", return_value={}), \
          patch("builtins.input", return_value="y"), \
          patch("firmware_report.write_csv") as mock_write:
         main()
@@ -138,5 +171,6 @@ def test_main_saves_when_confirmed():
 
 def test_main_does_not_prompt_when_nothing_collected():
     with patch("firmware_report.load_all_records", return_value=[]), \
+         patch("firmware_report.load_known_good", return_value={}), \
          patch("builtins.input", side_effect=AssertionError("should never prompt")):
         main()

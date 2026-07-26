@@ -47,7 +47,7 @@ def _run_args():
 
     print("Format: a CSV file, one device per line, two columns: vendor,host")
     print("Vendor is 'juniper' or 'exos'. Example line: juniper,192.168.1.10")
-    print("Real IPs, so keep it out of the repo, e.g. in a gitignored devices/ folder here.")
+    print("Real IPs, so put it in devices/ (gitignored), e.g. devices/mylist.csv")
     path = input("Path to that file: ").strip()
 
     return ["--devices-file", path] if path else []
@@ -132,9 +132,9 @@ TOOLS = [
         "build_env": _collect_unifi_env,
     },
     {
-        "label": "Firmware inventory report (reads what's already collected, no new scan)",
+        "label": "Firmware inventory + compliance report (reads what's already collected, no new scan)",
         "script": "firmware_report.py",
-        "needs": "nothing extra; reads whatever's already in output/ from previous runs",
+        "needs": "nothing extra; reads output/ from previous runs, checks known_good_firmware.json",
         "build_args": list,
     },
 ]
