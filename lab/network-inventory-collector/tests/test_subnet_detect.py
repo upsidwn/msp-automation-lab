@@ -37,9 +37,9 @@ def test_raises_when_no_default_route():
     fake_sock.connect.side_effect = OSError("network unreachable")
     fake_sock.__enter__.return_value = fake_sock
 
-    with patch("subnet_detect.socket.socket", return_value=fake_sock):
-        with pytest.raises(SubnetDetectionError):
-            detect_local_cidr()
+    with patch("subnet_detect.socket.socket", return_value=fake_sock), \
+         pytest.raises(SubnetDetectionError):
+        detect_local_cidr()
 
 
 def test_raises_when_no_interface_matches_local_ip():
@@ -48,6 +48,6 @@ def test_raises_when_no_interface_matches_local_ip():
     fake_sock.__enter__.return_value = fake_sock
 
     with patch("subnet_detect.socket.socket", return_value=fake_sock), \
-         patch("subnet_detect.psutil.net_if_addrs", return_value={}):
-        with pytest.raises(SubnetDetectionError):
-            detect_local_cidr()
+         patch("subnet_detect.psutil.net_if_addrs", return_value={}), \
+         pytest.raises(SubnetDetectionError):
+        detect_local_cidr()

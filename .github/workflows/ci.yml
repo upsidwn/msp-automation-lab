@@ -1,0 +1,91 @@
+name: CI
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-collector:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+      - name: Install dependencies
+        working-directory: lab/network-inventory-collector
+        run: pip install -r source/requirements.txt
+      - name: Run tests
+        working-directory: lab/network-inventory-collector
+        run: pytest tests/
+
+  test-config-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+      - name: Install dependencies
+        working-directory: lab/config-backup-system
+        run: pip install -r source/requirements.txt
+      - name: Install Ansible collections
+        working-directory: lab/config-backup-system/source
+        run: ansible-galaxy collection install -r requirements.yml
+      - name: Run tests
+        working-directory: lab/config-backup-system
+        run: pytest tests/
+
+  lint-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff
+        run: ruff check .
+
+  lint-yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+      - name: Install yamllint
+        run: pip install yamllint
+      - name: Run yamllint
+        run: yamllint -c .yamllint .
+
+  lint-ansible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.9"
+      - name: Install project dependencies
+        working-directory: lab/config-backup-system
+        run: pip install -r source/requirements.txt
+      - name: Install ansible-lint
+        run: pip install ansible-lint
+      - name: Install Ansible collections
+        working-directory: lab/config-backup-system/source
+        run: ansible-galaxy collection install -r requirements.yml
+      - name: Run ansible-lint
+        working-directory: lab/config-backup-system/source
+        run: ansible-lint backup.yml
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

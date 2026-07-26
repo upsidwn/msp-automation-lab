@@ -1,0 +1,5 @@
+# Known false positives, reviewed and confirmed safe.
+
+# Placeholder value ("abcdef123456") in an old docs file that no longer
+# exists (consolidated away early on), not a real credential.
+26a8c1d64ce67757fdf5c495d5ed275c8e936708:docs/SECURITY_CONSIDERATIONS.md:generic-api-key:47

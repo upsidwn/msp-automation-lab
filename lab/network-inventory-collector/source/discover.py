@@ -10,16 +10,15 @@ import json
 import os
 import subprocess
 
-import requests
-from dotenv import load_dotenv
-
 import arp_lookup
 import collector as junos_collector
 import collector_exos as exos_collector
 import collector_unifi
 import oui_lookup
+import requests
 from auth import prompt_and_retry_ssh, try_ssh_device_types
 from config import MissingConfigError, load_credential_pool, load_unifi_config
+from dotenv import load_dotenv
 from nmap_scan import scan
 from subnet_detect import SubnetDetectionError, detect_local_cidr
 

@@ -1,0 +1,11 @@
+extends: default
+
+ignore: |
+  **/.venv/
+  **/.git/
+  **/output/
+
+rules:
+  line-length:
+    max: 130
+  document-start: disable

@@ -1,5 +1,7 @@
 # MSP Automation Lab
 
+[![CI](https://github.com/upsidwn/msp-automation-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/upsidwn/msp-automation-lab/actions/workflows/ci.yml)
+
 A collection of practical automation tools, workflows, and AI-assisted solutions designed to improve efficiency, documentation, and consistency within managed service provider environments.
 
 ## Overview

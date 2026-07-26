@@ -2,13 +2,10 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
-from netmiko import NetmikoAuthenticationException, NetmikoTimeoutException
-
 from auth import connect_with_pool, prompt_and_retry_ssh, try_ssh_device_types
+from netmiko import NetmikoAuthenticationException, NetmikoTimeoutException
 
 
 def test_uses_first_working_credential_in_pool():

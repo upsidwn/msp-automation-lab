@@ -79,13 +79,15 @@ def test_playbook_passes_ansible_syntax_check(tmp_path):
     # this only proves the YAML/module structure is valid, no real device
     # or real credentials involved.
     inventory = tmp_path / "hosts.yml"
-    inventory.write_text(open(os.path.join(SOURCE_DIR, "inventory", "hosts.yml.example")).read())
+    with open(os.path.join(SOURCE_DIR, "inventory", "hosts.yml.example")) as f:
+        inventory.write_text(f.read())
 
     result = subprocess.run(
         ["ansible-playbook", "backup.yml", "--syntax-check", "-i", str(inventory)],
         cwd=SOURCE_DIR,
         capture_output=True,
         text=True,
+        check=False,
     )
 
     assert result.returncode == 0, result.stderr

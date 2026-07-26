@@ -2,11 +2,10 @@
 # Connects, runs `show version`, prints raw output. No parsing yet --
 # just proving auth + reachability before building the real collector.
 
-from dotenv import load_dotenv
-from netmiko import NetmikoTimeoutException
-
 from auth import connect_with_pool
 from config import MissingConfigError, load_credential_pool, load_juniper_host
+from dotenv import load_dotenv
+from netmiko import NetmikoTimeoutException
 
 load_dotenv()
 

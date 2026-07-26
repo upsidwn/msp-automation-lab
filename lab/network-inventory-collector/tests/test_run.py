@@ -2,12 +2,9 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
 from netmiko import NetmikoTimeoutException
-
 from run import collect_one, load_devices_file, main
 
 

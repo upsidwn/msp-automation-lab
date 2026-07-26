@@ -9,13 +9,12 @@ import csv
 import json
 import os
 
-from dotenv import load_dotenv
-from netmiko import NetmikoTimeoutException
-
 import collector as junos_collector
 import collector_exos as exos_collector
 from auth import connect_with_pool
 from config import load_credential_pool
+from dotenv import load_dotenv
+from netmiko import NetmikoTimeoutException
 
 load_dotenv()
 
