@@ -14,11 +14,12 @@ venv/
 # OS junk
 .DS_Store
 
-# Collector output - real device data (serials, IPs, etc), never commit
-lab/*/output/*.json
-lab/*/output/*.csv
-production/*/output/*.json
-production/*/output/*.csv
+# Collector output - real device data (serials, IPs, etc), never commit.
+# Wildcarded, not extension-specific: diagram.py's .png and
+# config-backup-system's timestamped files already showed one-extension-
+# at-a-time patterns miss the next new output format.
+lab/*/output/*
+production/*/output/*
 
 # Local device lists for run.py --devices-file (real IPs), never commit
 lab/*/devices/
@@ -29,7 +30,3 @@ lab/*/source/inventory/hosts.yml
 production/*/source/inventory/hosts.yml
 lab/*/source/group_vars/*/vault.yml
 production/*/source/group_vars/*/vault.yml
-
-# Config backups (real device configs), never commit
-lab/config-backup-system/output/*
-production/config-backup-system/output/*

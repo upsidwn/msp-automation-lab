@@ -137,6 +137,12 @@ TOOLS = [
         "needs": "nothing extra; reads output/ from previous runs, checks known_good_firmware.json",
         "build_args": list,
     },
+    {
+        "label": "Device diagram (reads what's already collected, no new scan)",
+        "script": "diagram.py",
+        "needs": "graphviz installed (brew install graphviz); reads output/ from previous runs",
+        "build_args": list,
+    },
 ]
 
 

@@ -375,11 +375,36 @@ only writes `output/firmware_report.csv` if asked, matching the
 "terminal output isn't a repo risk, only files are" reasoning already
 established for the config-backup-system project.
 
+## Device diagram
+
+Called "device diagram," not "network diagram," on purpose: it's an
+inventory visualization, not a topology map. Reuses
+`firmware_report.load_all_records()`, no new device connections. Uses
+`graphviz` (needs the system `dot` binary too, same pattern as `nmap`).
+Hub-and-spoke layout, every device connects to one hub node, grouped/
+colored by vendor. Unidentified hosts aren't drawn yet, only
+fully-identified records.
+
+The hub is the real default gateway when it can be identified among
+the collected records (found via the OS routing table, matched against
+each record), a generic "Network" label otherwise. UniFi's top-level
+`host` field is the controller's shared address, not per-device, and
+the gateway/console device's own `interfaces` IP turned out to be its
+WAN address, not LAN, confirmed live: neither field alone reliably
+identifies which UniFi record is the actual gateway. Resolved by
+matching on either field for candidates, then requiring the model name
+to look gateway-shaped (`UDM`, `USG`, `Dream Machine`) whenever there's
+any ambiguity, falling back to the generic label rather than guessing
+wrong. Real topology (which port connects to what) needs LLDP neighbor
+data, which nothing collects yet, a separate future project, not a
+diagram tweak, see Next up.
+
 ## Next up
 
 - UniFi per-port/per-radio detail stays the known v1 limitation, on
   purpose. Would need live testing against the real controller to find
   out whether a deeper endpoint even exists, and nothing's asking for
   that detail yet, so parked rather than chased for its own sake.
-- Known-good firmware version comparison for the report above, once
-  there's an actual target-version list to check against.
+- Real network topology mapping (which port connects to what) needs
+  LLDP neighbor data collection first, a new collector capability, not
+  something the device diagram can add on its own.
