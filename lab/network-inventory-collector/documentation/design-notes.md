@@ -347,9 +347,39 @@ inside the repo. Added `lab/*/devices/` to `.gitignore` (same pattern as
 `output/`) as a conventional safe spot, and `menu.py` suggests it when
 asking for the file path.
 
+## Firmware inventory report
+
+No new device connections at all, pure reporting on data the existing
+collectors already gathered. Reads every `*.json` file already sitting
+in `output/` (`discover_results.json`, `inventory_run.json`,
+`juniper_inventory.json`, `unifi_inventory.json`, whatever's actually
+there), normalizes the different shapes each one uses (a dict with a
+`records` key, a plain list, or a single dict for the one-device path),
+and combines them into one list.
+
+**Dedup needed real thought, not just a host-based key.** The same
+device can show up in more than one output file (a one-off `collect.py`
+run, then a later `discover.py` sweep), so duplicates get collapsed,
+keeping whichever has the newer `collected_at`. But UniFi's `host`
+field is the *controller's* address, shared across every device behind
+it, not a per-device one (see the UniFi API notes above), so keying the
+dedup on `host` alone would have silently collapsed every AP/switch on
+one controller into a single record. Keys on `mac_address` first when
+present (UniFi always has one), falling back to `host` for the SSH
+vendors where it genuinely is per-device.
+
+No known-good version comparison yet, on purpose, that needs an actual
+target-version list to compare against, which nothing's defined yet.
+This just lists what's out there. Prints to the terminal by default,
+only writes `output/firmware_report.csv` if asked, matching the
+"terminal output isn't a repo risk, only files are" reasoning already
+established for the config-backup-system project.
+
 ## Next up
 
 - UniFi per-port/per-radio detail stays the known v1 limitation, on
   purpose. Would need live testing against the real controller to find
   out whether a deeper endpoint even exists, and nothing's asking for
   that detail yet, so parked rather than chased for its own sake.
+- Known-good firmware version comparison for the report above, once
+  there's an actual target-version list to check against.
