@@ -131,6 +131,12 @@ TOOLS = [
         "build_args": lambda: [],
         "build_env": _collect_unifi_env,
     },
+    {
+        "label": "Firmware inventory report (reads what's already collected, no new scan)",
+        "script": "firmware_report.py",
+        "needs": "nothing extra; reads whatever's already in output/ from previous runs",
+        "build_args": lambda: [],
+    },
 ]
 
 
