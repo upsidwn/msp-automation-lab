@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.9"
+      - name: Install graphviz (dot binary, diagram.py shells out to it)
+        run: sudo apt-get update && sudo apt-get install -y graphviz
       - name: Install dependencies
         working-directory: lab/network-inventory-collector
         run: pip install -r source/requirements.txt
