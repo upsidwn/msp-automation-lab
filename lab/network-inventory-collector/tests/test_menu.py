@@ -32,7 +32,7 @@ def test_prompt_choice_reprompts_on_invalid_input():
 
 
 def test_run_tool_invokes_correct_script_with_no_extra_args():
-    tool = {"label": "test tool", "script": "collect.py", "needs": "nothing", "build_args": lambda: []}
+    tool = {"label": "test tool", "script": "collect.py", "needs": "nothing", "build_args": list}
 
     with patch("menu.subprocess.run") as mock_run:
         run_tool(tool)
@@ -64,7 +64,7 @@ def test_run_tool_injects_build_env_on_top_of_current_env():
         "label": "test tool",
         "script": "collect.py",
         "needs": "nothing",
-        "build_args": lambda: [],
+        "build_args": list,
         "build_env": lambda: {"NIC_JUNOS_HOST": "10.0.0.9"},
     }
 
@@ -167,7 +167,7 @@ def test_run_tool_calls_after_run_when_present():
         "label": "test tool",
         "script": "discover.py",
         "needs": "nothing",
-        "build_args": lambda: [],
+        "build_args": list,
         "after_run": after_run,
     }
 
@@ -178,7 +178,7 @@ def test_run_tool_calls_after_run_when_present():
 
 
 def test_run_tool_skips_after_run_when_absent():
-    tool = {"label": "test tool", "script": "collect.py", "needs": "nothing", "build_args": lambda: []}
+    tool = {"label": "test tool", "script": "collect.py", "needs": "nothing", "build_args": list}
 
     with patch("menu.subprocess.run"):
         run_tool(tool)  # should not raise

@@ -7,10 +7,9 @@ import json
 import os
 
 import requests
-from dotenv import load_dotenv
-
 from collector_unifi import collect_all
 from config import MissingConfigError, load_unifi_config
+from dotenv import load_dotenv
 
 load_dotenv()
 

@@ -7,12 +7,11 @@ import csv
 import json
 import os
 
-from dotenv import load_dotenv
-from netmiko import NetmikoTimeoutException
-
 from auth import connect_with_pool
 from collector import collect as collect_from_connection
 from config import MissingConfigError, load_credential_pool, load_juniper_host
+from dotenv import load_dotenv
+from netmiko import NetmikoTimeoutException
 
 load_dotenv()
 

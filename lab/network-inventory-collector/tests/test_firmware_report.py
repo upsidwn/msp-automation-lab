@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
-import firmware_report
 from firmware_report import load_all_records, main, print_report, write_csv
 
 

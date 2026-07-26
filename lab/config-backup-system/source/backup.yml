@@ -1,7 +1,7 @@
 ---
 - name: Back up Junos running config
   hosts: junos
-  gather_facts: no
+  gather_facts: false
 
   tasks:
     - name: Make sure the output directory exists (git doesn't track empty folders)
@@ -13,13 +13,13 @@
 
     - name: Save running config to a timestamped local file
       juniper.device.junos_config:
-        backup: yes
+        backup: true
         backup_options:
           dir_path: "{{ playbook_dir }}/../output"
 
 - name: Back up EXOS running config
   hosts: exos
-  gather_facts: no
+  gather_facts: false
 
   tasks:
     - name: Make sure the output directory exists (git doesn't track empty folders)
@@ -43,4 +43,5 @@
       ansible.builtin.copy:
         content: "{{ exos_running_config.stdout }}"
         dest: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_config.{{ '%Y-%m-%d@%H:%M:%S' | strftime }}"
+        mode: "0644"
       delegate_to: localhost

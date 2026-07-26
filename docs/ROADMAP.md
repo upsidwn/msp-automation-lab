@@ -69,12 +69,15 @@ forget them:
 - AI knowledge base generator
 - AI-assisted change documentation
 - Internal MSP AI assistant (RAG over internal docs)
-- CI/CD pipeline (markdown/python/ansible lint + security scanning)
+- ~~CI/CD pipeline (markdown/python/ansible lint + security scanning)~~
+  done, `.github/workflows/ci.yml`: pytest for both lab projects, ruff,
+  yamllint, ansible-lint, gitleaks. Markdown lint deferred, everything
+  else in v1.
 - Containerized dev environment
 - Infra monitoring dashboard
 - Credential management examples (vault, secret managers)
 
-Future tech to poke at: Kubernetes, NetBox, RAG, local LLMs, GitHub Actions.
+Future tech to poke at: Kubernetes, NetBox, RAG, local LLMs.
 
 ---
 

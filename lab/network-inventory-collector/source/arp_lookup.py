@@ -16,7 +16,7 @@ MAC_PATTERN = re.compile(r"at ([0-9a-fA-F]{1,2}(?::[0-9a-fA-F]{1,2}){5})")
 
 
 def get_mac(ip):
-    result = subprocess.run(["arp", "-n", ip], capture_output=True, text=True)
+    result = subprocess.run(["arp", "-n", ip], capture_output=True, text=True, check=False)
     match = MAC_PATTERN.search(result.stdout)
     if not match:
         return None

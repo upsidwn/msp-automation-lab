@@ -121,21 +121,21 @@ TOOLS = [
         "label": "Single Juniper device (quick one-off collection)",
         "script": "collect.py",
         "needs": "NIC_JUNOS_HOST and credentials, either from .env or entered here",
-        "build_args": lambda: [],
+        "build_args": list,
         "build_env": _collect_env,
     },
     {
         "label": "UniFi controller (pulls every adopted device in one call)",
         "script": "collect_unifi.py",
         "needs": "NIC_UNIFI_HOST and NIC_UNIFI_API_KEY, either from .env or entered here",
-        "build_args": lambda: [],
+        "build_args": list,
         "build_env": _collect_unifi_env,
     },
     {
         "label": "Firmware inventory report (reads what's already collected, no new scan)",
         "script": "firmware_report.py",
         "needs": "nothing extra; reads whatever's already in output/ from previous runs",
-        "build_args": lambda: [],
+        "build_args": list,
     },
 ]
 
@@ -162,11 +162,11 @@ def prompt_choice():
 def run_tool(tool):
     print(f"\nNeeds: {tool['needs']}")
     args = tool["build_args"]()
-    extra_env = tool.get("build_env", lambda: {})()
+    extra_env = tool.get("build_env", dict)()
     env = {**os.environ, **extra_env}
 
     script_path = os.path.join(SOURCE_DIR, tool["script"])
-    subprocess.run([sys.executable, script_path] + args, env=env)
+    subprocess.run([sys.executable, script_path] + args, env=env, check=False)
 
     after_run = tool.get("after_run")
     if after_run:

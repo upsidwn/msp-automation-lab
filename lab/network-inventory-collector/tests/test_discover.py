@@ -59,7 +59,7 @@ def test_unidentified_candidate_gets_enriched_with_mac_and_vendor():
          patch("discover.try_ssh_device_types", return_value=None), \
          patch("discover.arp_lookup.get_mac", return_value="aa:bb:cc:dd:ee:ff"), \
          patch("discover.oui_lookup.get_vendor", return_value="Some Vendor Inc"):
-        records, unidentified = discover("10.0.0.0/24")
+        _records, unidentified = discover("10.0.0.0/24")
 
     assert unidentified[0]["mac"] == "aa:bb:cc:dd:ee:ff"
     assert unidentified[0]["mac_vendor"] == "Some Vendor Inc"

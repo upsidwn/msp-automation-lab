@@ -98,6 +98,7 @@ def test_script_list_output_is_valid_json_when_no_discover_output(tmp_path):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
 
     assert result.returncode == 0
@@ -114,6 +115,7 @@ def test_script_host_flag_returns_empty_dict(tmp_path):
         capture_output=True,
         text=True,
         env=env,
+        check=False,
     )
 
     assert result.returncode == 0
