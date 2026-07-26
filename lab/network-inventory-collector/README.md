@@ -34,10 +34,9 @@ source/discover.py 192.168.1.0/24`.
 4. **Single Juniper device**, a quick one-off pull from one Junos box.
 5. **UniFi controller**, pulls every adopted device from a console in
    one API call.
-6. **Firmware inventory report**, no new scan at all, just reads
-   whatever's already sitting in `output/` from previous runs and
-   prints every device's firmware version, deduped across files. Asks
-   before saving anything to a file.
+6. **Firmware inventory report**, no new scan, reads whatever's
+   already in `output/`, flags each device compliant/outdated against
+   `known_good_firmware.json`. Asks before saving to a file.
 
 Options 3-5 will ask whether to use `.env` or let you type a host/API
 key/credentials in on the spot instead.
@@ -120,7 +119,8 @@ back to disk). See `source/auth.py` and `source/config.py`.
 - `source/subnet_detect.py`: figures out the local machine's own subnet, for when discover.py isn't given an explicit CIDR
 - `source/arp_lookup.py`: reads a host's MAC from the OS's own ARP cache, no elevated privileges needed
 - `source/oui_lookup.py`: MAC → manufacturer lookup (IEEE OUI registry via `mac-vendor-lookup`)
-- `source/firmware_report.py`: no new scan, reads every `output/*.json` from previous runs, prints a deduped firmware list, asks before saving to a file
+- `source/firmware_report.py`: no new scan, reads every `output/*.json` from previous runs, checks compliance against `known_good_firmware.json`, asks before saving to a file
+- `known_good_firmware.json`: acceptable firmware versions per vendor, edit for your environment
 - `.env.example`: every env var the tools read, copy to `.env` and fill in real values
 - `tests/fixtures/*`: sanitized fixtures (fake serials/models/IPs/MACs, real format), used by the parser tests
 
