@@ -129,20 +129,64 @@ def test_collect_env_uses_dotenv_by_default():
     assert env == {}
 
 
-def test_collect_env_prompts_for_override():
-    with patch("builtins.input", side_effect=["n", "10.0.0.5", "admin"]), \
-         patch("menu.getpass.getpass", return_value="pw"):
+def test_collect_env_prompts_for_override_no_saved_credential():
+    with patch("builtins.input", side_effect=["n", "10.0.0.5", "admin", "n"]), \
+         patch("menu.getpass.getpass", return_value="pw"), \
+         patch("menu.keychain.load_credential", return_value=None), \
+         patch("menu.keychain.save_credential") as mock_save:
+        env = menu._collect_env()
+
+    assert env == {"NIC_JUNOS_HOST": "10.0.0.5", "NIC_CRED_1_USER": "admin", "NIC_CRED_1_PASS": "pw"}
+    mock_save.assert_not_called()
+
+
+def test_collect_env_saves_new_credential_when_asked():
+    with patch("builtins.input", side_effect=["n", "10.0.0.5", "admin", "y"]), \
+         patch("menu.getpass.getpass", return_value="pw"), \
+         patch("menu.keychain.load_credential", return_value=None), \
+         patch("menu.keychain.save_credential") as mock_save:
+        menu._collect_env()
+
+    mock_save.assert_called_once_with("10.0.0.5", {"username": "admin", "password": "pw"})
+
+
+def test_collect_env_uses_saved_credential_when_found():
+    saved = {"username": "admin", "password": "pw"}
+    with patch("builtins.input", side_effect=["n", "10.0.0.5", "y"]), \
+         patch("menu.keychain.load_credential", return_value=saved):
         env = menu._collect_env()
 
     assert env == {"NIC_JUNOS_HOST": "10.0.0.5", "NIC_CRED_1_USER": "admin", "NIC_CRED_1_PASS": "pw"}
 
 
-def test_collect_unifi_env_prompts_for_override():
-    with patch("builtins.input", side_effect=["n", "10.0.0.6"]), \
-         patch("menu.getpass.getpass", return_value="fake-key"):
+def test_collect_env_declines_saved_credential_prompts_fresh():
+    saved = {"username": "old-user", "password": "old-pw"}
+    with patch("builtins.input", side_effect=["n", "10.0.0.5", "n", "admin", "n"]), \
+         patch("menu.getpass.getpass", return_value="pw"), \
+         patch("menu.keychain.load_credential", return_value=saved):
+        env = menu._collect_env()
+
+    assert env == {"NIC_JUNOS_HOST": "10.0.0.5", "NIC_CRED_1_USER": "admin", "NIC_CRED_1_PASS": "pw"}
+
+
+def test_collect_unifi_env_prompts_for_override_no_saved_credential():
+    with patch("builtins.input", side_effect=["n", "10.0.0.6", "n"]), \
+         patch("menu.getpass.getpass", return_value="fake-key"), \
+         patch("menu.keychain.load_credential", return_value=None), \
+         patch("menu.keychain.save_credential") as mock_save:
         env = menu._collect_unifi_env()
 
     assert env == {"NIC_UNIFI_HOST": "10.0.0.6", "NIC_UNIFI_API_KEY": "fake-key"}
+    mock_save.assert_not_called()
+
+
+def test_collect_unifi_env_uses_saved_credential_when_found():
+    saved = {"api_key": "saved-key"}
+    with patch("builtins.input", side_effect=["n", "10.0.0.6", "y"]), \
+         patch("menu.keychain.load_credential", return_value=saved):
+        env = menu._collect_unifi_env()
+
+    assert env == {"NIC_UNIFI_HOST": "10.0.0.6", "NIC_UNIFI_API_KEY": "saved-key"}
 
 
 def test_main_runs_one_tool_then_quits():

@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 
+import keychain
 from subnet_detect import SubnetDetectionError, detect_local_cidr
 
 SOURCE_DIR = os.path.dirname(__file__)
@@ -80,8 +81,16 @@ def _collect_env():
         return {}
 
     host = input("Device IP/hostname: ").strip()
+
+    saved = keychain.load_credential(host)
+    if saved and input(f"Found a saved credential for {host}, use it (y/n)? ").strip().lower() == "y":
+        return {"NIC_JUNOS_HOST": host, "NIC_CRED_1_USER": saved["username"], "NIC_CRED_1_PASS": saved["password"]}
+
     username = input("Username: ").strip()
     password = getpass.getpass("Password: ")
+
+    if input("Save this to your OS keychain for next time (y/n)? ").strip().lower() == "y":
+        keychain.save_credential(host, {"username": username, "password": password})
 
     return {"NIC_JUNOS_HOST": host, "NIC_CRED_1_USER": username, "NIC_CRED_1_PASS": password}
 
@@ -92,7 +101,15 @@ def _collect_unifi_env():
         return {}
 
     host = input("UniFi console host/IP: ").strip()
+
+    saved = keychain.load_credential(host)
+    if saved and input(f"Found a saved credential for {host}, use it (y/n)? ").strip().lower() == "y":
+        return {"NIC_UNIFI_HOST": host, "NIC_UNIFI_API_KEY": saved["api_key"]}
+
     api_key = getpass.getpass("API key: ")
+
+    if input("Save this to your OS keychain for next time (y/n)? ").strip().lower() == "y":
+        keychain.save_credential(host, {"api_key": api_key})
 
     return {"NIC_UNIFI_HOST": host, "NIC_UNIFI_API_KEY": api_key}
 

@@ -399,6 +399,16 @@ wrong. Real topology (which port connects to what) needs LLDP neighbor
 data, which nothing collects yet, a separate future project, not a
 diagram tweak, see Next up.
 
+## OS keychain credential storage
+
+`keychain.py` wraps the `keyring` package: opt-in, per-host, saves a
+small field dict (username/password or an API key) rather than
+assuming a fixed shape. Wired into `menu.py`'s options 4 and 5 only for
+now, not the SSH credential pool or `discover.py`'s prompt-on-failure
+path, those still work purely in-memory as before. This is the "use an
+OS keychain if persistence is ever needed" answer from `docs/NOTES.md`,
+finally built.
+
 ## Next up
 
 - UniFi per-port/per-radio detail stays the known v1 limitation, on
