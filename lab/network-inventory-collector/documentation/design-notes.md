@@ -512,6 +512,22 @@ mDNS and ARP candidates now get filtered to the requested CIDR before
 they reach the table or the output, matching how nmap's own results
 were already naturally scoped just by construction.
 
+## Paramiko logging noise
+
+A `--thorough` run from a real terminal (not this dev setup) surfaced
+one more thing: a host with port 22 open but not actually running SSH
+made paramiko dump its own raw ERROR-level traceback straight to the
+terminal for every failed connection attempt, on top of the
+SSHException/NetmikoBaseException `auth.py` already catches and
+reports cleanly through the live table. Nothing in this project
+configures logging, so Python's default handler was printing that
+noise directly, drowning out the table it was supposed to be updating
+in place. Reproduced deliberately (a bare socket that accepts then
+closes without sending a banner, the same failure paramiko hit) and
+confirmed `logging.getLogger("paramiko").setLevel(logging.CRITICAL)`
+in `auth.py` silences it without touching how the failure actually
+gets handled, that path was already correct.
+
 ## Next up
 
 - UniFi per-port/per-radio detail stays the known v1 limitation, on

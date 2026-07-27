@@ -4,9 +4,22 @@
 # Nothing here ever writes credentials to disk.
 
 import getpass
+import logging
 
 from netmiko import ConnectHandler, NetmikoAuthenticationException
 from netmiko.exceptions import NetmikoBaseException, SSHException
+
+# Confirmed live during a discover.py batch scan: a host with port 22
+# open but not actually running SSH (or one that just resets the
+# connection) makes paramiko log its own raw ERROR-level traceback for
+# every failed attempt, on top of the SSHException/NetmikoBaseException
+# this module already catches and reports through the normal
+# unidentified/scanning-table path. Nothing else in this project
+# configures logging, so Python's default handler was printing that
+# straight to the terminal, drowning out the live progress table for a
+# failure that's already handled cleanly one layer up. Silenced here,
+# at the shared module every connection path funnels through.
+logging.getLogger("paramiko").setLevel(logging.CRITICAL)
 
 
 def try_ssh_device_types(host, pool, device_types):
