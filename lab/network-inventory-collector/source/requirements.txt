@@ -3,6 +3,7 @@ python-dotenv>=1.0
 requests>=2.31
 mac-vendor-lookup>=0.1.12
 psutil>=5.9
+zeroconf>=0.130
 graphviz>=0.20
 keyring>=24.0
 pytest>=8.0

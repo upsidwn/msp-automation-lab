@@ -38,6 +38,12 @@ def _discover_args():
     if prompt_fail == "y":
         args.append("--prompt-on-auth-failure")
 
+    mdns_seconds = input(
+        "Seconds to passively listen for mDNS announcements after the scan, 0 to skip (default 5): "
+    ).strip()
+    if mdns_seconds:
+        args += ["--mdns-seconds", mdns_seconds]
+
     return args
 
 

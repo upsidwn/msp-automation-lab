@@ -14,6 +14,7 @@ import arp_lookup
 import collector as junos_collector
 import collector_exos as exos_collector
 import collector_unifi
+import mdns_discovery
 import oui_lookup
 import requests
 from auth import prompt_and_retry_ssh, try_ssh_device_types
@@ -65,10 +66,41 @@ def enrich_unidentified(candidate):
     mac = candidate["mac"] or arp_lookup.get_mac(candidate["ip"])
     vendor = oui_lookup.get_vendor(mac)
 
-    return {**candidate, "mac": mac, "mac_vendor": vendor}
+    return {**candidate, "mac": mac, "mac_vendor": vendor, "hostname": None, "services": []}
 
 
-def discover(cidr, thorough=False, prompt_on_auth_failure=False):
+def _mdns_candidates(seconds):
+    if seconds <= 0:
+        return []
+    return mdns_discovery.merge_by_ip(mdns_discovery.listen(duration=seconds))
+
+
+def merge_mdns(records, unidentified, candidates):
+    """Folds mDNS-only sightings into the existing results in place: skip
+    an IP nmap already fully identified, add a hostname/services to an
+    entry nmap saw but couldn't identify, or add a brand new unidentified
+    entry for an IP nmap's active scan missed outright. That last case
+    is the actual point of listening passively at all.
+    """
+    for candidate in candidates:
+        ip = candidate["ip"]
+        if any(r.get("host") == ip for r in records):
+            continue
+
+        existing = next((u for u in unidentified if u.get("ip") == ip), None)
+        if existing is None:
+            mac = arp_lookup.get_mac(ip)
+            existing = {"ip": ip, "mac": mac, "mac_vendor": oui_lookup.get_vendor(mac)}
+            unidentified.append(existing)
+
+        existing["hostname"] = existing.get("hostname") or candidate["hostname"]
+        existing["services"] = candidate["services"]
+
+        services = ", ".join(candidate["services"]) or "none"
+        print(f"   (mDNS) {ip}: {candidate['hostname'] or 'no hostname'}, services: {services}")
+
+
+def discover(cidr, thorough=False, prompt_on_auth_failure=False, mdns_seconds=0):
     pool = load_credential_pool()
 
     try:
@@ -105,6 +137,13 @@ def discover(cidr, thorough=False, prompt_on_auth_failure=False):
             vendor_hint = f", possibly {entry['mac_vendor']}" if entry["mac_vendor"] else ""
             print(f"?? {host} -- open ports {sorted(ports)}, could not identify/authenticate{vendor_hint}")
 
+    try:
+        mdns_candidates = _mdns_candidates(mdns_seconds)
+        if mdns_candidates:
+            merge_mdns(records, unidentified, mdns_candidates)
+    except Exception as e:  # noqa: BLE001, untrusted device data, any exception type is possible
+        print(f"mDNS listen failed, skipping it and keeping the active scan results: {e}")
+
     return records, unidentified
 
 
@@ -140,6 +179,18 @@ def main():
             "stop for keyboard input unless asked to."
         ),
     )
+    parser.add_argument(
+        "--mdns-seconds",
+        type=int,
+        default=5,
+        help=(
+            "Seconds to passively listen for mDNS/DNS-SD announcements after the active "
+            "scan finishes. Catches self-announcing devices (smart speakers, printers, "
+            "IoT gear) that don't have SSH/HTTP/HTTPS open at all, so nmap's scan would "
+            "never find them regardless of probe type. Zero elevated privileges needed. "
+            "0 skips it entirely."
+        ),
+    )
     args = parser.parse_args()
 
     cidr = args.cidr
@@ -153,7 +204,10 @@ def main():
 
     try:
         records, unidentified = discover(
-            cidr, thorough=args.thorough, prompt_on_auth_failure=args.prompt_on_auth_failure
+            cidr,
+            thorough=args.thorough,
+            prompt_on_auth_failure=args.prompt_on_auth_failure,
+            mdns_seconds=args.mdns_seconds,
         )
     except FileNotFoundError:
         print("nmap not found -- install it first (e.g. `brew install nmap` on macOS).")

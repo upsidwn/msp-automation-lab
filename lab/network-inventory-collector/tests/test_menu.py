@@ -78,7 +78,7 @@ def test_run_tool_injects_build_env_on_top_of_current_env():
 
 def test_discover_args_confirms_detected_subnet():
     with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
-         patch("builtins.input", side_effect=["y", "n", "n"]):
+         patch("builtins.input", side_effect=["y", "n", "n", ""]):
         args = menu._discover_args()
 
     assert args == ["192.168.1.0/24"]
@@ -86,7 +86,7 @@ def test_discover_args_confirms_detected_subnet():
 
 def test_discover_args_lets_user_override_detected_subnet():
     with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
-         patch("builtins.input", side_effect=["n", "10.0.0.0/24", "n", "n"]):
+         patch("builtins.input", side_effect=["n", "10.0.0.0/24", "n", "n", ""]):
         args = menu._discover_args()
 
     assert args == ["10.0.0.0/24"]
@@ -94,7 +94,7 @@ def test_discover_args_lets_user_override_detected_subnet():
 
 def test_discover_args_falls_back_to_manual_entry_when_detection_fails():
     with patch("menu.detect_local_cidr", side_effect=SubnetDetectionError("no route")), \
-         patch("builtins.input", side_effect=["10.0.0.0/24", "n", "n"]):
+         patch("builtins.input", side_effect=["10.0.0.0/24", "n", "n", ""]):
         args = menu._discover_args()
 
     assert args == ["10.0.0.0/24"]
@@ -102,10 +102,18 @@ def test_discover_args_falls_back_to_manual_entry_when_detection_fails():
 
 def test_discover_args_builds_both_flags():
     with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
-         patch("builtins.input", side_effect=["y", "y", "y"]):
+         patch("builtins.input", side_effect=["y", "y", "y", ""]):
         args = menu._discover_args()
 
     assert args == ["192.168.1.0/24", "--thorough", "--prompt-on-auth-failure"]
+
+
+def test_discover_args_appends_mdns_seconds_when_given():
+    with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
+         patch("builtins.input", side_effect=["y", "n", "n", "10"]):
+        args = menu._discover_args()
+
+    assert args == ["192.168.1.0/24", "--mdns-seconds", "10"]
 
 
 def test_run_args_no_list_returns_no_args():
