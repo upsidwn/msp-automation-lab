@@ -25,8 +25,19 @@ production/*/output/*
 lab/*/devices/
 production/*/devices/
 
-# Ansible real inventory/vault (real IPs, encrypted-or-not creds), never commit
-lab/*/source/inventory/hosts.yml
-production/*/source/inventory/hosts.yml
-lab/*/source/group_vars/*/vault.yml
-production/*/source/group_vars/*/vault.yml
+# Ansible real inventory/vault (real IPs, encrypted-or-not creds), never
+# commit. Structural, not filename-specific: Ansible accepts any
+# inventory filename/extension, and host_vars is a normal sibling of
+# group_vars, a hardcoded "hosts.yml" pattern would miss all of those.
+lab/*/source/inventory/*
+!lab/*/source/inventory/*.example
+production/*/source/inventory/*
+!production/*/source/inventory/*.example
+lab/*/source/group_vars/*/vault.*
+!lab/*/source/group_vars/*/vault.*.example
+lab/*/source/host_vars/*/vault.*
+!lab/*/source/host_vars/*/vault.*.example
+production/*/source/group_vars/*/vault.*
+!production/*/source/group_vars/*/vault.*.example
+production/*/source/host_vars/*/vault.*
+!production/*/source/host_vars/*/vault.*.example
