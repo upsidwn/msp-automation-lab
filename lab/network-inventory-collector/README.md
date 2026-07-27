@@ -27,8 +27,10 @@ source/discover.py 192.168.1.0/24`.
    through the API path instead. Point it at a network and see what's
    on it. Also passively listens for mDNS/DNS-SD announcements for a
    few seconds afterward (self-announcing devices nmap's probes can
-   miss entirely, zero elevated privileges needed). Needs `nmap`
-   installed (`brew install nmap` on macOS).
+   miss entirely, zero elevated privileges needed). Can optionally send
+   an ARP sweep too, catches devices with no open ports at all, may ask
+   for sudo. Needs `nmap` installed (`brew install nmap` on macOS), plus
+   `arp-scan` if you turn the sweep on.
 2. **Scan for Extreme EXOS devices only**, same scan as above, filtered
    down to just EXOS afterward.
 3. **Manual multi-device collection**, type a vendor and IP in one at
@@ -101,6 +103,18 @@ is" step.
   in a single 6-second listen against the home network, several of
   which don't have SSH/HTTP/HTTPS open at all, so nmap's active scan
   would never have found them (see design-notes.md).
+- **ARP sweep confirmed live**: found and filled in a real device nmap
+  had already flagged unidentified. Ran unprivileged on this dev
+  machine without a sudo prompt at all (see design-notes.md).
+- **Live progress table confirmed through a real terminal**: `discover.py`
+  now redraws one line per IP in place as nmap, mDNS, and ARP each find
+  more about it, instead of scrolling a new line per pass (see
+  design-notes.md).
+- **CIDR handling confirmed live**: bad input (a typo, not a real
+  CIDR) now gets rejected with a clear re-prompt instead of silently
+  scanning nothing, and mDNS/ARP results are scoped to the requested
+  subnet instead of leaking in devices from elsewhere on a bigger flat
+  network (see design-notes.md).
 
 ## Still deciding
 
@@ -134,6 +148,9 @@ back to disk). See `source/auth.py` and `source/config.py`.
 - `source/arp_lookup.py`: reads a host's MAC from the OS's own ARP cache, no elevated privileges needed
 - `source/oui_lookup.py`: MAC → manufacturer lookup (IEEE OUI registry via `mac-vendor-lookup`)
 - `source/mdns_discovery.py`: passive mDNS/DNS-SD listener (`zeroconf`), catches self-announcing devices nmap's active scan can miss, folded into `discover.py`'s results
+- `source/arp_scan.py`: wraps the `arp-scan` CLI tool, finds hosts that answer ARP even with zero open ports, opt-in via `--arp-sweep`
+- `source/privilege.py`: reusable confirm-and-elevate-with-sudo helper, only prompts if an unprivileged attempt actually needs it
+- `source/live_table.py`: redraws a one-line-per-IP progress table in place as discover.py's passes find more, falls back to plain prints when stdout isn't a real terminal
 - `source/keychain.py`: opt-in OS keychain save/load for credentials across runs, used by `menu.py`'s options 4-5
 - `source/firmware_report.py`: no new scan, reads every `output/*.json` from previous runs, checks compliance against `known_good_firmware.json`, asks before saving to a file
 - `source/diagram.py`: no new scan, draws every collected device grouped by vendor, gateway on top when identifiable, no real link data (hub-and-spoke, not physical topology)
@@ -144,8 +161,9 @@ back to disk). See `source/auth.py` and `source/config.py`.
 ## System requirements
 
 Beyond the Python packages in `requirements.txt`, `nmap` and `graphviz`
-must be installed separately (CLI tools, not pip packages). On macOS:
-`brew install nmap graphviz`.
+must be installed separately (CLI tools, not pip packages). `arp-scan`
+is also needed, only if you turn on the ARP sweep option. On macOS:
+`brew install nmap graphviz arp-scan`.
 
 ## Notes
 

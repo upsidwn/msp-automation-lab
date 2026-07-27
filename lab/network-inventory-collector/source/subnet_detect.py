@@ -30,11 +30,11 @@ def _local_ip():
         return sock.getsockname()[0]
 
 
-def _netmask_for_ip(ip):
-    for addrs in psutil.net_if_addrs().values():
+def _match_local_addr(ip):
+    for name, addrs in psutil.net_if_addrs().items():
         for addr in addrs:
             if addr.family == socket.AF_INET and addr.address == ip:
-                return addr.netmask
+                return name, addr.netmask
 
     raise SubnetDetectionError(f"Could not find a network interface matching {ip}.")
 
@@ -46,7 +46,21 @@ def detect_local_cidr():
     should fall back to asking for an explicit CIDR instead.
     """
     ip = _local_ip()
-    netmask = _netmask_for_ip(ip)
+    _name, netmask = _match_local_addr(ip)
     network = ipaddress.ip_network(f"{ip}/{netmask}", strict=False)
 
     return str(network)
+
+
+def detect_local_interface():
+    """Returns the name of the interface tied to the default route (e.g.
+    "en0"), for tools that need an explicit interface name rather than a
+    CIDR. Confirmed live: arp-scan's own interface auto-detection picked
+    a virtual interface with no IP address on this Mac instead of the
+    real one, so it needs to be told explicitly rather than trusted to
+    pick correctly on its own.
+    """
+    ip = _local_ip()
+    name, _netmask = _match_local_addr(ip)
+
+    return name

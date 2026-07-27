@@ -425,15 +425,95 @@ a 6 second listen, several with no SSH/HTTP/HTTPS open at all. Caught
 one real bug this way: this machine's own loopback address was
 showing up as a "device" (now dropped).
 
+## Active ARP sweep
+
+New `arp_scan.py` wraps the `arp-scan` CLI tool, finds live hosts
+that answer ARP even with zero open ports, so nmap can't find them no
+matter which probe type it uses. Opt-in via `--arp-sweep`, off by
+default since unlike mDNS it might need elevated privileges. Same
+local-segment limitation as `arp_lookup.py`: ARP doesn't cross
+routers, so this only sees what's on the same layer 2 network as the
+scanning box.
+
+The original plan was to always prompt for sudo, but a live test
+against the real home network showed that's not always true: this dev
+machine already had raw socket access from an earlier Wireshark
+install, so arp-scan just worked unprivileged. New `privilege.py`
+reflects that, a reusable per-tool confirm-and-elevate helper that
+only prompts when an unprivileged attempt actually fails, rather than
+assuming every machine needs it. Also confirmed live: arp-scan's own
+interface auto-detection picked a virtual interface with no IP on
+this Mac, so the interface is always passed explicitly now, reusing
+`subnet_detect.py`'s existing route detection.
+
+Confirmed live end to end through `discover.py` against the real home
+network: filled in MAC/vendor on a device nmap had already flagged
+unidentified, and found two more devices nmap's active scan missed
+completely, the actual reason this exists.
+
+## Live progress table
+
+Previously each phase (nmap dispatch, mDNS, ARP) just printed its own
+line as it went, so the same IP could scroll by more than once as
+different passes found more about it. New `live_table.py` redraws a
+one-line-per-IP table in place instead, updating a row as more info
+arrives rather than printing a new line. Falls back to plain sequential
+prints when stdout isn't a real terminal (piped, redirected, or a
+test), since redrawing only makes sense on an actual screen.
+
+`mdns_discovery.listen()` and `arp_scan.scan()` both gained an optional
+callback (`on_update`/`on_found`) that fires live as results come in
+during the listen window or the scan itself, rather than only after
+the whole thing finishes. `discover.py` feeds those into the table, and
+the existing merge functions still update it too for anything that
+only shows up in the final batch (the sudo-elevated ARP retry doesn't
+stream live), tracking which IPs already got a live update so nothing
+draws twice.
+
+Confirmed live through a real pseudo-terminal, not just the non-tty
+fallback: the actual cursor-up-and-clear escape codes fire correctly,
+and an already-identified device no longer picks up an extra ARP line
+on its row, a real bug the first live run caught (the live callbacks
+didn't know about the "skip already-identified" rule the batch merge
+already had, now they do).
+
+A real run through `menu.py` caught a second bug the pty test above
+missed: a row with enough services piled onto it gets longer than the
+terminal is wide, wraps onto two physical screen lines, and once one
+row silently takes up two lines the cursor-up-by-row-count math no
+longer matches reality, so later redraws land on the wrong line and
+the table smears into itself. Every row now gets truncated to the
+terminal width (`shutil.get_terminal_size()`, re-checked each redraw
+so a resize mid-run is handled too) so one row is always exactly one
+screen line. Confirmed live again afterward with a deliberately narrow
+terminal, no more smearing at any width. Same run also caught
+`menu.py` passing a non-numeric mDNS-seconds answer straight through
+to argparse and crashing instead of re-prompting, fixed the same way
+`prompt_choice()` already handles a bad menu choice.
+
+## CIDR validation and scoping
+
+Another real run surfaced two more issues at once. Declining the
+auto-detected subnet and typing "24" at the follow-up prompt (not a
+real CIDR) went straight through with zero validation. nmap and
+arp-scan both parse a bare number leniently as some throwaway address
+instead of erroring, so the whole scan ran against nothing, finished
+in a couple seconds instead of the usual 90-120, and looked like it
+"worked" with zero results. `menu.py` and `discover.py`'s own `main()`
+both validate now (`ipaddress.ip_network(..., strict=False)`),
+re-prompting or failing loudly instead of silently scanning garbage.
+
+That same run also showed mDNS results from way outside the requested
+`/24`. Not a bug exactly, mDNS is a passive listen with no concept of
+subnet boundaries at all, and it turns out this particular network is
+one flat broadcast domain bigger than any single `/24`, so it genuinely
+heard those devices. But scoped results are the more useful default:
+mDNS and ARP candidates now get filtered to the requested CIDR before
+they reach the table or the output, matching how nmap's own results
+were already naturally scoped just by construction.
+
 ## Next up
 
-- **ARP sweep discovery**, the next planned addition: an active ARP
-  sweep across the subnet (finds devices even nmap's TCP scan misses,
-  since it just answers ARP, no open port needed). Needs elevated
-  privileges to craft raw ARP requests, the first real use case for
-  the privilege-escalation model decided earlier in this file (opt-in,
-  per-tool sudo prompt at the moment it's needed, not blanket sudo at
-  startup). Not built yet.
 - UniFi per-port/per-radio detail stays the known v1 limitation, on
   purpose. Would need live testing against the real controller to find
   out whether a deeper endpoint even exists, and nothing's asking for

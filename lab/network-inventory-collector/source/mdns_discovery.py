@@ -35,10 +35,15 @@ class _CollectingListener(ServiceListener):
     source: a bad type/name pairing raises BadTypeInNameException, and
     nothing between the incoming packet and this callback catches it),
     so one bad record shouldn't be able to take down the whole listen.
+
+    Also feeds each resolved service into merger (if given) as it
+    arrives, so a caller can watch per-IP results build up live instead
+    of waiting for the whole listen window to finish.
     """
 
-    def __init__(self):
+    def __init__(self, merger=None):
         self.seen = {}
+        self._merger = merger
 
     def add_service(self, zc, service_type, name):
         try:
@@ -47,6 +52,8 @@ class _CollectingListener(ServiceListener):
             return
         if info is not None:
             self.seen[(service_type, name)] = info
+            if self._merger:
+                self._merger.add(info)
 
     def update_service(self, zc, service_type, name):
         self.add_service(zc, service_type, name)
@@ -55,12 +62,17 @@ class _CollectingListener(ServiceListener):
         self.seen.pop((service_type, name), None)
 
 
-def listen(duration=5):
+def listen(duration=5, on_update=None):
     """Returns the raw ServiceInfo objects seen in `duration` seconds.
     Wall-clock cost is roughly duration plus a couple seconds up front
     for the service-type query, not exactly `duration`, fine for a tool
     that's already reporting progress live, not worth the complexity of
     carving the budget precisely.
+
+    on_update, if given, gets called with that IP's current merged
+    candidate (see merge_by_ip) every time a service resolves during
+    the listen window, not just once at the end, for a live view of
+    what's being found.
     """
     if duration <= 0:
         return []
@@ -71,7 +83,8 @@ def listen(duration=5):
         if not service_types:
             return []
 
-        listener = _CollectingListener()
+        merger = _IncrementalMerge(on_update)
+        listener = _CollectingListener(merger)
         browser = ServiceBrowser(zc, list(service_types), listener=listener)
         try:
             time.sleep(duration)
@@ -93,6 +106,40 @@ def _clean(text):
     return "".join(ch for ch in text if ch.isprintable())
 
 
+class _IncrementalMerge:
+    """Same per-IP grouping merge_by_ip needs, done incrementally: feed
+    it one ServiceInfo at a time and it keeps the running merged state,
+    calling on_update with that IP's current snapshot each time it
+    changes. merge_by_ip() is just this fed a whole batch with no
+    callback, so there's one merge implementation, not two.
+    """
+
+    def __init__(self, on_update=None):
+        self._by_ip = {}
+        self._on_update = on_update
+
+    def add(self, info):
+        hostname = _clean((info.server or "").rstrip(".")) or None
+        for ip in info.parsed_addresses(IPVersion.V4Only):
+            if ip.startswith("127."):
+                continue
+
+            candidate = self._by_ip.setdefault(ip, {"ip": ip, "hostname": None, "services": set()})
+            candidate["services"].add(_clean(info.type))
+            if hostname and not candidate["hostname"]:
+                candidate["hostname"] = hostname
+
+            if self._on_update:
+                self._on_update(self._snapshot(ip))
+
+    def _snapshot(self, ip):
+        candidate = self._by_ip[ip]
+        return {"ip": candidate["ip"], "hostname": candidate["hostname"], "services": sorted(candidate["services"])}
+
+    def result(self):
+        return [self._snapshot(ip) for ip in self._by_ip]
+
+
 def merge_by_ip(infos):
     """Collapses raw ServiceInfo entries into one candidate per IP, since
     a single device usually advertises more than one service (e.g. a
@@ -103,20 +150,8 @@ def merge_by_ip(infos):
     well as its real LAN IP, so loopback addresses get dropped here.
     That's just this box hearing itself, not a device on the network.
     """
-    by_ip = {}
-
+    merger = _IncrementalMerge()
     for info in infos:
-        hostname = _clean((info.server or "").rstrip(".")) or None
-        for ip in info.parsed_addresses(IPVersion.V4Only):
-            if ip.startswith("127."):
-                continue
+        merger.add(info)
 
-            candidate = by_ip.setdefault(ip, {"ip": ip, "hostname": None, "services": set()})
-            candidate["services"].add(_clean(info.type))
-            if hostname and not candidate["hostname"]:
-                candidate["hostname"] = hostname
-
-    for candidate in by_ip.values():
-        candidate["services"] = sorted(candidate["services"])
-
-    return list(by_ip.values())
+    return merger.result()
