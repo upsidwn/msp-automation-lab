@@ -117,6 +117,55 @@ def test_listen_browses_found_types_and_returns_collected_info():
     mock_zc.close.assert_called_once()
 
 
+def test_listen_calls_on_update_as_services_resolve_live():
+    fake_info = _FakeInfo("_http._tcp.local.", "thing.local.", ["10.0.0.20"])
+    updates = []
+
+    def fake_browser(zc, types, listener):
+        listener.add_service(zc, "_http._tcp.local.", "thing._http._tcp.local.")
+        return MagicMock()
+
+    with patch("mdns_discovery.Zeroconf") as mock_zc_cls, \
+         patch("mdns_discovery.ZeroconfServiceTypes") as mock_types_cls, \
+         patch("mdns_discovery.ServiceBrowser", side_effect=fake_browser), \
+         patch("mdns_discovery.time.sleep"):
+        mock_zc = MagicMock()
+        mock_zc.get_service_info.return_value = fake_info
+        mock_zc_cls.return_value = mock_zc
+        mock_types_cls.find.return_value = ("_http._tcp.local.",)
+
+        mdns_discovery.listen(duration=1, on_update=updates.append)
+
+    assert len(updates) == 1
+    assert updates[0]["ip"] == "10.0.0.20"
+    assert updates[0]["hostname"] == "thing.local"
+
+
+def test_incremental_merge_calls_on_update_per_service_with_running_state():
+    updates = []
+    merger = mdns_discovery._IncrementalMerge(on_update=updates.append)
+
+    merger.add(_FakeInfo("_ipp._tcp.local.", "printer1.local.", ["10.0.0.21"]))
+    merger.add(_FakeInfo("_http._tcp.local.", "printer1.local.", ["10.0.0.21"]))
+
+    assert len(updates) == 2
+    assert updates[0]["services"] == ["_ipp._tcp.local."]
+    assert updates[1]["services"] == ["_http._tcp.local.", "_ipp._tcp.local."]
+
+
+def test_incremental_merge_result_matches_merge_by_ip():
+    infos = [
+        _FakeInfo("_ipp._tcp.local.", "printer1.local.", ["10.0.0.22"]),
+        _FakeInfo("_airplay._tcp.local.", "tv.local.", ["10.0.0.23"]),
+    ]
+
+    merger = mdns_discovery._IncrementalMerge()
+    for info in infos:
+        merger.add(info)
+
+    assert merger.result() == mdns_discovery.merge_by_ip(infos)
+
+
 def test_listen_closes_zeroconf_even_if_browsing_raises():
     with patch("mdns_discovery.Zeroconf") as mock_zc_cls, \
          patch("mdns_discovery.ZeroconfServiceTypes") as mock_types_cls:

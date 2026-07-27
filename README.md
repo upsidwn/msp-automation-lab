@@ -12,6 +12,18 @@ This project explores how automation, infrastructure-as-code, and AI-assisted to
 
 The goal of this project is not to replace technicians, but to create tools that improve operational efficiency and reliability.
 
+## Quick start
+
+Each lab tool has its own README with full setup. Short version:
+
+- [Network inventory collector](lab/network-inventory-collector/README.md): auto-discover a subnet, pull inventory, check firmware compliance.
+  ```
+  cd lab/network-inventory-collector
+  pip install -r source/requirements.txt
+  python source/menu.py
+  ```
+- [Config backup system](lab/config-backup-system/README.md): Ansible playbook, backs up Junos/EXOS configs. Needs vault setup first, see its README.
+
 ## Project Goals
 
 - Automate repetitive MSP operational tasks

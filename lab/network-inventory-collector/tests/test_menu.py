@@ -78,7 +78,7 @@ def test_run_tool_injects_build_env_on_top_of_current_env():
 
 def test_discover_args_confirms_detected_subnet():
     with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
-         patch("builtins.input", side_effect=["y", "n", "n", ""]):
+         patch("builtins.input", side_effect=["y", "n", "n", "", "n"]):
         args = menu._discover_args()
 
     assert args == ["192.168.1.0/24"]
@@ -86,7 +86,7 @@ def test_discover_args_confirms_detected_subnet():
 
 def test_discover_args_lets_user_override_detected_subnet():
     with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
-         patch("builtins.input", side_effect=["n", "10.0.0.0/24", "n", "n", ""]):
+         patch("builtins.input", side_effect=["n", "10.0.0.0/24", "n", "n", "", "n"]):
         args = menu._discover_args()
 
     assert args == ["10.0.0.0/24"]
@@ -94,7 +94,7 @@ def test_discover_args_lets_user_override_detected_subnet():
 
 def test_discover_args_falls_back_to_manual_entry_when_detection_fails():
     with patch("menu.detect_local_cidr", side_effect=SubnetDetectionError("no route")), \
-         patch("builtins.input", side_effect=["10.0.0.0/24", "n", "n", ""]):
+         patch("builtins.input", side_effect=["10.0.0.0/24", "n", "n", "", "n"]):
         args = menu._discover_args()
 
     assert args == ["10.0.0.0/24"]
@@ -102,7 +102,7 @@ def test_discover_args_falls_back_to_manual_entry_when_detection_fails():
 
 def test_discover_args_builds_both_flags():
     with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
-         patch("builtins.input", side_effect=["y", "y", "y", ""]):
+         patch("builtins.input", side_effect=["y", "y", "y", "", "n"]):
         args = menu._discover_args()
 
     assert args == ["192.168.1.0/24", "--thorough", "--prompt-on-auth-failure"]
@@ -110,10 +110,62 @@ def test_discover_args_builds_both_flags():
 
 def test_discover_args_appends_mdns_seconds_when_given():
     with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
-         patch("builtins.input", side_effect=["y", "n", "n", "10"]):
+         patch("builtins.input", side_effect=["y", "n", "n", "10", "n"]):
         args = menu._discover_args()
 
     assert args == ["192.168.1.0/24", "--mdns-seconds", "10"]
+
+
+def test_prompt_mdns_seconds_reprompts_on_non_numeric_answer():
+    # Confirmed live: a stray "y" here used to get passed straight to
+    # discover.py's --mdns-seconds and crash the whole run.
+    with patch("builtins.input", side_effect=["y", "not a number", "7"]):
+        answer = menu._prompt_mdns_seconds()
+
+    assert answer == "7"
+
+
+def test_prompt_mdns_seconds_returns_none_for_blank_answer():
+    with patch("builtins.input", return_value=""):
+        assert menu._prompt_mdns_seconds() is None
+
+
+def test_prompt_cidr_reprompts_on_bare_number():
+    # Confirmed live: typing "24" here (meant as something else) went
+    # straight through unvalidated. nmap and arp-scan both leniently
+    # misparse a bare number as some throwaway address instead of
+    # erroring, so the whole scan silently ran against nothing.
+    with patch("builtins.input", side_effect=["24", "10.0.0.0/24"]):
+        answer = menu._prompt_cidr("Enter a CIDR: ")
+
+    assert answer == "10.0.0.0/24"
+
+
+def test_prompt_cidr_accepts_a_plain_ip_without_a_prefix():
+    with patch("builtins.input", return_value="10.0.0.5"):
+        assert menu._prompt_cidr("Enter a CIDR: ") == "10.0.0.5"
+
+
+def test_prompt_cidr_reprompts_on_blank_answer():
+    with patch("builtins.input", side_effect=["", "10.0.0.0/24"]):
+        answer = menu._prompt_cidr("Enter a CIDR: ")
+
+    assert answer == "10.0.0.0/24"
+
+
+def test_prompt_cidr_reprompts_on_garbage_text():
+    with patch("builtins.input", side_effect=["not a cidr at all", "10.0.0.0/24"]):
+        answer = menu._prompt_cidr("Enter a CIDR: ")
+
+    assert answer == "10.0.0.0/24"
+
+
+def test_discover_args_appends_arp_sweep_flag_when_confirmed():
+    with patch("menu.detect_local_cidr", return_value="192.168.1.0/24"), \
+         patch("builtins.input", side_effect=["y", "n", "n", "", "y"]):
+        args = menu._discover_args()
+
+    assert args == ["192.168.1.0/24", "--arp-sweep"]
 
 
 def test_run_args_no_list_returns_no_args():

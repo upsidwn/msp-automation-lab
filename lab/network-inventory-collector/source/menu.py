@@ -6,6 +6,7 @@
 # Adding a new tool later: one more entry in TOOLS, that's it.
 
 import getpass
+import ipaddress
 import json
 import os
 import subprocess
@@ -18,17 +19,58 @@ SOURCE_DIR = os.path.dirname(__file__)
 DISCOVER_OUTPUT = os.path.join(SOURCE_DIR, "..", "output", "discover_results.json")
 
 
+def _prompt_cidr(prompt_text):
+    """Confirmed live: a stray "24" typed here (meant as something else
+    entirely) went straight through with no validation. nmap and
+    arp-scan both parse a bare number leniently as some throwaway
+    address instead of erroring, so the whole scan silently ran against
+    nothing and looked like it "worked" with zero results. Re-prompts
+    until the answer actually parses as a CIDR or a plain IP.
+    """
+    answer = input(prompt_text).strip()
+    if not answer:
+        print("A CIDR is needed here, try again.")
+        return _prompt_cidr(prompt_text)
+
+    try:
+        ipaddress.ip_network(answer, strict=False)
+    except ValueError:
+        print(f"'{answer}' isn't a valid CIDR or IP, try again (e.g. 192.168.1.0/24).")
+        return _prompt_cidr(prompt_text)
+
+    return answer
+
+
+def _prompt_mdns_seconds():
+    """A blank answer means "use discover.py's own default," anything
+    else has to be a non-negative whole number since it gets passed
+    straight through as --mdns-seconds. Confirmed live: a stray "y"
+    (probably meant for the next question) went straight to argparse's
+    int conversion and crashed the whole run instead of re-prompting.
+    """
+    answer = input(
+        "Seconds to passively listen for mDNS announcements after the scan, 0 to skip (default 5): "
+    ).strip()
+    if not answer:
+        return None
+    if not answer.isdigit():
+        print("Not a valid number, try again.")
+        return _prompt_mdns_seconds()
+
+    return answer
+
+
 def _discover_args():
     try:
         detected = detect_local_cidr()
     except SubnetDetectionError as e:
         print(f"Could not auto-detect a subnet: {e}")
-        cidr = input("Enter a CIDR to scan instead, e.g. 192.168.1.0/24: ").strip()
+        cidr = _prompt_cidr("Enter a CIDR to scan instead, e.g. 192.168.1.0/24: ")
     else:
         use_detected = input(f"Auto-detected subnet: {detected}. Scan this (y/n)? ").strip().lower()
-        cidr = detected if use_detected == "y" else input("Enter a CIDR to scan instead: ").strip()
+        cidr = detected if use_detected == "y" else _prompt_cidr("Enter a CIDR to scan instead: ")
 
-    args = [cidr] if cidr else []
+    args = [cidr]
 
     thorough = input("Thorough mode, skip host-discovery and scan every IP directly (y/n): ").strip().lower()
     if thorough == "y":
@@ -38,11 +80,16 @@ def _discover_args():
     if prompt_fail == "y":
         args.append("--prompt-on-auth-failure")
 
-    mdns_seconds = input(
-        "Seconds to passively listen for mDNS announcements after the scan, 0 to skip (default 5): "
-    ).strip()
+    mdns_seconds = _prompt_mdns_seconds()
     if mdns_seconds:
         args += ["--mdns-seconds", mdns_seconds]
+
+    arp_sweep = input(
+        "Also send ARP requests across the subnet? Catches devices with no open ports at "
+        "all, may prompt for sudo (y/n): "
+    ).strip().lower()
+    if arp_sweep == "y":
+        args.append("--arp-sweep")
 
     return args
 
@@ -124,7 +171,10 @@ TOOLS = [
     {
         "label": "Auto-discover a subnet (nmap scan, dispatches each device to the right collector)",
         "script": "discover.py",
-        "needs": "nmap installed; credentials in .env for anything it finds with SSH open",
+        "needs": (
+            "nmap installed; credentials in .env for anything it finds with SSH open; "
+            "arp-scan installed if you turn on the ARP sweep option"
+        ),
         "build_args": _discover_args,
     },
     {
