@@ -409,8 +409,31 @@ path, those still work purely in-memory as before. This is the "use an
 OS keychain if persistence is ever needed" answer from `docs/NOTES.md`,
 finally built.
 
+## Passive mDNS/DNS-SD discovery
+
+New `mdns_discovery.py`, using the `zeroconf` package: a two-phase
+listen (find what service types are advertised, then browse instances
+of each) since DNS-SD has no single "list everything" query. Wired
+into `discover.py` as an extra pass after the nmap dispatch loop,
+gated by `--mdns-seconds` (default 5, `0` skips it), folding results
+into the same `unidentified` list nmap already produces. SSDP was
+considered too but `zeroconf` doesn't speak it, so it's deferred
+rather than hand rolling a second listener.
+
+Confirmed live against the real home network: found 15-16 devices in
+a 6 second listen, several with no SSH/HTTP/HTTPS open at all. Caught
+one real bug this way: this machine's own loopback address was
+showing up as a "device" (now dropped).
+
 ## Next up
 
+- **ARP sweep discovery**, the next planned addition: an active ARP
+  sweep across the subnet (finds devices even nmap's TCP scan misses,
+  since it just answers ARP, no open port needed). Needs elevated
+  privileges to craft raw ARP requests, the first real use case for
+  the privilege-escalation model decided earlier in this file (opt-in,
+  per-tool sudo prompt at the moment it's needed, not blanket sudo at
+  startup). Not built yet.
 - UniFi per-port/per-radio detail stays the known v1 limitation, on
   purpose. Would need live testing against the real controller to find
   out whether a deeper endpoint even exists, and nothing's asking for
