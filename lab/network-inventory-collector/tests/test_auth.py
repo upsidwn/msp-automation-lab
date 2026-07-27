@@ -1,11 +1,21 @@
+import logging
 import os
 import sys
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "source"))
 
+import auth  # noqa: F401, importing this module is the thing under test here
 from auth import connect_with_pool, prompt_and_retry_ssh, try_ssh_device_types
 from netmiko import NetmikoAuthenticationException, NetmikoTimeoutException
+
+
+def test_importing_auth_silences_paramikos_own_error_logging():
+    # Confirmed live: a host with port 22 open but not actually running
+    # SSH makes paramiko log its own raw traceback on top of the
+    # exception this module already catches and reports cleanly,
+    # flooding the terminal during a real discover.py scan.
+    assert logging.getLogger("paramiko").getEffectiveLevel() >= logging.CRITICAL
 
 
 def test_uses_first_working_credential_in_pool():
