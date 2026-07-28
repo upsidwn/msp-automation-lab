@@ -174,20 +174,28 @@ image, mirroring the real project layout so nothing else changes.
 ```
 docker build -t network-inventory-collector .
 docker run -it --rm \
+  --network host \
   --cap-add=NET_RAW --cap-add=NET_ADMIN \
+  --user "$(id -u):$(id -g)" \
   --env-file .env \
   -v "$(pwd)/output:/app/output" \
   network-inventory-collector
 ```
 
-`-it` since `menu.py` is interactive. `--env-file .env` reads your
-existing `.env` directly, no separate Docker-specific config needed.
-`-v .../output` persists scan results on the host instead of losing
-them when the container exits. `--cap-add` grants just enough to send
-raw ARP requests unprivileged inside the container (same idea as this
-dev machine's Wireshark-granted BPF access letting arp-scan skip sudo
-entirely, a different mechanism, same effect); leave it off if you
-don't need the ARP sweep option.
+`-it` since `menu.py` is interactive. `--network host` matters more
+than it looks: Docker's default networking puts the container on its
+own private virtual network, isolated from your real LAN, so a plain
+`docker run` can't actually see real devices at all (confirmed live,
+auto-detect found Docker's own internal subnet instead of the real
+one). `--env-file .env` reads your existing `.env` directly, no
+separate Docker-specific config needed. `-v .../output` persists scan
+results on the host instead of losing them when the container exits,
+paired with `--user "$(id -u):$(id -g)"` so the container writes to
+that mounted directory as your own user instead of a UID it has no
+permission over (confirmed live: skipping this threw a `PermissionError`
+writing the results file). `--cap-add` plus a `setcap` on the arp-scan
+binary in the Dockerfile itself is what lets ARP sweep run unprivileged
+in the container, leave the flags off if you don't need that option.
 
 Known gap, not yet confirmed live: `keychain.py`'s "save to your OS
 keychain" prompts (menu options 4-5) need a real keyring backend,

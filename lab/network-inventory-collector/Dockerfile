@@ -6,23 +6,30 @@
 FROM python:3.11-slim
 
 # nmap: active scan (plain TCP connect mode, no elevated privileges
-# needed). arp-scan: ARP sweep, needs NET_RAW/NET_ADMIN capabilities at
-# `docker run` time to work unprivileged, see README for the flag.
-# graphviz: the `dot` binary the device diagram shells out to. net-tools:
-# provides the classic `arp` command (not arp-scan), which arp_lookup.py
-# shells out to for reading the OS ARP cache. Confirmed live: python's
-# slim base image doesn't include it, and its absence crashed the whole
-# scan instead of just skipping the MAC lookup, see arp_lookup.py's fix.
+# needed). arp-scan: ARP sweep. graphviz: the `dot` binary the device
+# diagram shells out to. net-tools: provides the classic `arp` command
+# (not arp-scan), which arp_lookup.py shells out to for reading the OS
+# ARP cache. Confirmed live: python's slim base image doesn't include
+# it, and its absence crashed the whole scan instead of just skipping
+# the MAC lookup, see arp_lookup.py's fix. libcap2-bin: provides setcap,
+# see below.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nmap \
     arp-scan \
     graphviz \
     net-tools \
+    libcap2-bin \
     && rm -rf /var/lib/apt/lists/*
 
-# Runs as a non-root user by default (least privilege). arp-scan still
-# works unprivileged as this user as long as the container itself was
-# started with --cap-add=NET_RAW --cap-add=NET_ADMIN.
+# Confirmed live: --cap-add=NET_RAW/NET_ADMIN at `docker run` only makes
+# those capabilities available to the container, a non-root process
+# doesn't get them automatically just by running inside it (unlike this
+# dev machine's BPF group-permission model on macOS, a different
+# mechanism entirely). Granting the capability directly to the arp-scan
+# binary here means any user who runs it gets it, root or not, no sudo
+# needed inside the container at all.
+RUN setcap cap_net_raw,cap_net_admin+eip "$(command -v arp-scan)"
+
 RUN useradd --create-home --shell /bin/bash collector
 WORKDIR /app
 
