@@ -207,6 +207,25 @@ def test_main_accepts_a_plain_ip_without_a_prefix():
     assert mock_discover.call_args.args[0] == "10.0.0.5"
 
 
+def test_main_reports_the_actual_missing_command_not_always_nmap():
+    # Confirmed live: this handler used to unconditionally blame nmap
+    # for any FileNotFoundError, regardless of what actually raised it.
+    # Deliberately uses a filename with no lexical overlap with the
+    # handler's own static text ("nmap", "arp-scan"), so this test would
+    # actually fail if the fix regressed back to a hardcoded message.
+    missing_command_error = FileNotFoundError(2, "No such file or directory")
+    missing_command_error.filename = "totally-unrelated-tool"
+
+    with patch("sys.argv", ["discover.py", "10.0.0.0/24"]), \
+         patch("discover.discover", side_effect=missing_command_error), \
+         patch("builtins.print") as mock_print:
+        main()
+
+    printed = " ".join(str(call.args[0]) for call in mock_print.call_args_list)
+    assert "'totally-unrelated-tool' not found" in printed
+    assert "nmap" not in printed
+
+
 def test_no_open_relevant_ports_is_unidentified():
     candidates = [_candidate("10.0.0.5", [8080])]
 

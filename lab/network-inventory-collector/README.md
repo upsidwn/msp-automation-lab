@@ -115,6 +115,11 @@ is" step.
   scanning nothing, and mDNS/ARP results are scoped to the requested
   subnet instead of leaking in devices from elsewhere on a bigger flat
   network (see design-notes.md).
+- **Docker support confirmed live on a real VM**: full auto-discover
+  with ARP sweep, unprivileged, real devices found and written to
+  `output/` cleanly. Took four real fixes to get there (networking,
+  a missing command, capability handling, a bind-mount ownership trap),
+  see design-notes.md.
 
 ## Still deciding
 
@@ -164,6 +169,51 @@ Beyond the Python packages in `requirements.txt`, `nmap` and `graphviz`
 must be installed separately (CLI tools, not pip packages). `arp-scan`
 is also needed, only if you turn on the ARP sweep option. On macOS:
 `brew install nmap graphviz arp-scan`.
+
+## Running in Docker
+
+An alternative to installing everything locally: the `Dockerfile`
+bundles nmap/arp-scan/graphviz alongside the Python deps into one
+image, mirroring the real project layout so nothing else changes.
+
+```
+docker build -t network-inventory-collector .
+docker run -it --rm \
+  --network host \
+  --cap-add=NET_RAW --cap-add=NET_ADMIN \
+  --user "$(id -u):$(id -g)" \
+  --env-file .env \
+  -v "$(pwd)/output:/app/output" \
+  network-inventory-collector
+```
+
+- `-it`: `menu.py` is interactive.
+- `--network host`: Docker's default networking puts the container on
+  its own private virtual network, isolated from your real LAN, so a
+  plain `docker run` can't actually see real devices at all (confirmed
+  live, auto-detect found Docker's own internal subnet instead of the
+  real one). This also means the container has no network isolation
+  from the host at all, only run images here you've built or reviewed
+  yourself.
+- `--cap-add=NET_RAW --cap-add=NET_ADMIN` plus a `setcap` on the
+  arp-scan binary in the Dockerfile is what lets ARP sweep run
+  unprivileged in the container. `NET_RAW` is already in Docker's
+  default capability set, `NET_ADMIN` is the one actually needed here.
+  Leave both flags off if you don't need that option.
+- `--user "$(id -u):$(id -g)"`: paired with the mount below so the
+  container writes as your own user instead of a UID it has no
+  permission over (confirmed live: skipping this threw a
+  `PermissionError` writing the results file).
+- `--env-file .env`: reads your existing `.env` directly, no separate
+  Docker-specific config needed.
+- `-v .../output`: persists scan results on the host instead of
+  losing them when the container exits.
+
+Known gap, not yet confirmed live: `keychain.py`'s "save to your OS
+keychain" prompts (menu options 4-5) need a real keyring backend,
+which a headless container doesn't have by default. Decline those
+prompts for now; if it actually throws instead of failing cleanly,
+that's a real bug worth fixing properly, not guessed at in advance.
 
 ## Notes
 

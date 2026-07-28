@@ -16,7 +16,18 @@ MAC_PATTERN = re.compile(r"at ([0-9a-fA-F]{1,2}(?::[0-9a-fA-F]{1,2}){5})")
 
 
 def get_mac(ip):
-    result = subprocess.run(["arp", "-n", ip], capture_output=True, text=True, check=False)
+    """Confirmed live: a minimal container image without the `arp`
+    command installed made this crash the entire scan, losing every
+    already-collected result, instead of just leaving one candidate's
+    MAC unknown. A missing lookup tool should degrade the same way a
+    missing ARP cache entry already does, not take everything else down
+    with it.
+    """
+    try:
+        result = subprocess.run(["arp", "-n", ip], capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        return None
+
     match = MAC_PATTERN.search(result.stdout)
     if not match:
         return None

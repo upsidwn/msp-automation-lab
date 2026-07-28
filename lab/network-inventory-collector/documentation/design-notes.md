@@ -528,6 +528,34 @@ confirmed `logging.getLogger("paramiko").setLevel(logging.CRITICAL)`
 in `auth.py` silences it without touching how the failure actually
 gets handled, that path was already correct.
 
+## Docker support
+
+New `Dockerfile` bundles nmap/arp-scan/graphviz/net-tools with the
+Python deps, running as a non-root user, same project layout inside
+the container so the scripts' own path logic needs no changes.
+
+Four real things live testing on an actual VM caught, each wrong in a
+way reasoning alone wouldn't have predicted:
+
+- Default Docker networking put the container on its own private
+  subnet, isolated from the real LAN entirely, auto-detect found
+  Docker's own internal range instead. Needs `--network host`.
+- A minimal image doesn't include the `arp` command (separate from
+  `arp-scan`), which `arp_lookup.py` shells out to. Missing it crashed
+  the whole scan instead of just leaving one MAC unknown, and the
+  error message wrongly blamed nmap regardless of what actually failed.
+  Fixed both: `net-tools` in the image, and `arp_lookup.py` degrades to
+  `None` the same way a missing ARP cache entry already does.
+- `--cap-add=NET_RAW/NET_ADMIN` alone doesn't grant capabilities to a
+  non-root process just for existing in the container, unlike this dev
+  machine's BPF group-permission model on macOS, a different mechanism
+  entirely. Needed `setcap` directly on the arp-scan binary so any user
+  who runs it gets the capability, no sudo needed inside the container.
+- Bind-mounting a host directory that doesn't exist yet lets Docker
+  auto-create it as root, since the daemon runs as root. Every later
+  `--user` flag was fighting a directory that was already wrong before
+  the flag existed. One-time host-side `chown` fixed it going forward.
+
 ## Next up
 
 - UniFi per-port/per-radio detail stays the known v1 limitation, on

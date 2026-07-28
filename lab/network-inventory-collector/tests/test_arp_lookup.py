@@ -38,3 +38,11 @@ def test_get_mac_returns_none_for_incomplete_entry():
 def test_get_mac_returns_none_for_empty_output():
     with patch("arp_lookup.subprocess.run", return_value=_fake_result("")):
         assert get_mac("192.0.2.99") is None
+
+
+def test_get_mac_returns_none_when_arp_command_is_missing():
+    # Confirmed live: a minimal container image without net-tools raised
+    # FileNotFoundError here uncaught, crashing the whole scan instead
+    # of just leaving this one candidate's MAC unknown.
+    with patch("arp_lookup.subprocess.run", side_effect=FileNotFoundError()):
+        assert get_mac("192.0.2.42") is None

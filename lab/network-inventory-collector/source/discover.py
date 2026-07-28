@@ -340,8 +340,15 @@ def main():
             mdns_seconds=args.mdns_seconds,
             arp_sweep=args.arp_sweep,
         )
-    except FileNotFoundError:
-        print("nmap not found -- install it first (e.g. `brew install nmap` on macOS).")
+    except FileNotFoundError as e:
+        # Confirmed live: this used to unconditionally blame nmap, but
+        # arp_lookup.py shells out to a separate command ("arp") too, and
+        # a missing net-tools package in a minimal container hit this
+        # same handler with a misleading message. Report whichever
+        # command actually failed instead of guessing. arp_lookup.py now
+        # catches its own missing-command case, so e.filename here will
+        # only ever be nmap or arp-scan in practice.
+        print(f"'{e.filename}' not found, install it first.")
         return
     except subprocess.CalledProcessError as e:
         print(f"nmap scan failed: {e}")
