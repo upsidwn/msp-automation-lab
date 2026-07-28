@@ -165,6 +165,36 @@ must be installed separately (CLI tools, not pip packages). `arp-scan`
 is also needed, only if you turn on the ARP sweep option. On macOS:
 `brew install nmap graphviz arp-scan`.
 
+## Running in Docker
+
+An alternative to installing everything locally: the `Dockerfile`
+bundles nmap/arp-scan/graphviz alongside the Python deps into one
+image, mirroring the real project layout so nothing else changes.
+
+```
+docker build -t network-inventory-collector .
+docker run -it --rm \
+  --cap-add=NET_RAW --cap-add=NET_ADMIN \
+  --env-file .env \
+  -v "$(pwd)/output:/app/output" \
+  network-inventory-collector
+```
+
+`-it` since `menu.py` is interactive. `--env-file .env` reads your
+existing `.env` directly, no separate Docker-specific config needed.
+`-v .../output` persists scan results on the host instead of losing
+them when the container exits. `--cap-add` grants just enough to send
+raw ARP requests unprivileged inside the container (same idea as this
+dev machine's Wireshark-granted BPF access letting arp-scan skip sudo
+entirely, a different mechanism, same effect); leave it off if you
+don't need the ARP sweep option.
+
+Known gap, not yet confirmed live: `keychain.py`'s "save to your OS
+keychain" prompts (menu options 4-5) need a real keyring backend,
+which a headless container doesn't have by default. Decline those
+prompts for now; if it actually throws instead of failing cleanly,
+that's a real bug worth fixing properly, not guessed at in advance.
+
 ## Notes
 
 Read-only creds only, never hardcoded (see [docs/NOTES.md](../../docs/NOTES.md)).
