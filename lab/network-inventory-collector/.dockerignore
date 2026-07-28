@@ -1,11 +1,11 @@
 .venv/
-__pycache__/
-*.pyc
+**/__pycache__/
+**/*.pyc
 .pytest_cache/
 .ruff_cache/
-.env
+**/.env
 .git/
 output/
 tests/
 documentation/
-.DS_Store
+**/.DS_Store
