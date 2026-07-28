@@ -207,6 +207,24 @@ def test_main_accepts_a_plain_ip_without_a_prefix():
     assert mock_discover.call_args.args[0] == "10.0.0.5"
 
 
+def test_main_reports_the_actual_missing_command_not_always_nmap():
+    # Confirmed live: this handler used to unconditionally blame nmap
+    # for any FileNotFoundError, but arp_lookup.py shells out to a
+    # different command ("arp") that can go missing independently, a
+    # minimal container without net-tools hit this exact case.
+    missing_command_error = FileNotFoundError(2, "No such file or directory")
+    missing_command_error.filename = "arp"
+
+    with patch("sys.argv", ["discover.py", "10.0.0.0/24"]), \
+         patch("discover.discover", side_effect=missing_command_error), \
+         patch("builtins.print") as mock_print:
+        main()
+
+    printed = " ".join(str(call.args[0]) for call in mock_print.call_args_list)
+    assert "arp" in printed
+    assert "nmap not found" not in printed
+
+
 def test_no_open_relevant_ports_is_unidentified():
     candidates = [_candidate("10.0.0.5", [8080])]
 
