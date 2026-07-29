@@ -91,3 +91,19 @@ jobs:
       - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-build-collector:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build Docker image
+        working-directory: lab/network-inventory-collector
+        run: docker build -t network-inventory-collector:ci .
+      - name: Verify container runs as non-root user
+        run: |
+          actual_user=$(docker run --rm --entrypoint whoami network-inventory-collector:ci)
+          if [ "$actual_user" != "collector" ]; then
+            echo "Expected container to run as 'collector', got '$actual_user'"
+            exit 1
+          fi
+          echo "Container correctly runs as: $actual_user"
