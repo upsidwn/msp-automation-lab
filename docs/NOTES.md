@@ -63,5 +63,7 @@ project-name/
 - **Ansible**: network device automation, config management (agentless)
 - **Bash**: quick scripts, environment setup
 - **Docker**: local dev, running supporting services
-- **Terraform**: IaC, mostly for later cloud stuff
+- **Terraform**: IaC, starting with Proxmox VM provisioning, cloud later
+- **Kubernetes (k3s)**: container orchestration, real workloads
+  (CronJobs, Secrets) instead of one-off `docker run`
 - **Git/GitHub**: version control, issues, PRs
