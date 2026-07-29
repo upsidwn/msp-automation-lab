@@ -45,21 +45,14 @@ Dashboards, compliance checks, metrics. Grafana/Prometheus probably.
 Not committed to building all of these — just parked here so I don't
 forget them:
 
-- **Auto-discovery for the inventory collector** (in progress) — all
-  three vendor collectors (Junos, EXOS, UniFi) now exist, so this is the
-  active next piece. v1 leans on nmap (host/port/service discovery) +
-  the existing credential pool for dispatch, deliberately scoped
-  narrower than the full SNMP/LLDP/multi-VLAN vision — see
-  `lab/network-inventory-collector/documentation/design-notes.md` for
-  the actual plan and what's deferred to later passes.
-- **Ansible dynamic inventory bridge** — once the collector/discovery
-  tooling produces a real device list, expose it as an Ansible dynamic
-  inventory source (a script implementing Ansible's `--list` JSON
-  contract). Lets downstream config-management work (e.g. the
-  Configuration Backup System idea below) consume discovered devices
-  directly instead of duplicating inventory logic. Better fit for
-  Ansible here than trying to use it for discovery itself — Ansible
-  wants a known inventory to act on, not to go find unknown things.
+- ~~Auto-discovery for the inventory collector~~ done — nmap + mDNS +
+  optional ARP sweep, CIDR-scoped, live progress table, see
+  `lab/network-inventory-collector/documentation/design-notes.md`. Full
+  SNMP/LLDP/multi-VLAN vision deliberately deferred.
+- ~~Ansible dynamic inventory bridge~~ done, `dynamic_inventory.py`:
+  reads discover.py's output, exposes it as Ansible's `--list` JSON
+  contract grouped by vendor (junos/exos), opt-in alongside the static
+  hosts.yml (`ansible-playbook backup.yml -i dynamic_inventory.py`).
 - ~~Firmware compliance reporter~~ done, `firmware_report.py`
 - ~~Device diagram generator~~ done, `diagram.py` (inventory diagram,
   not real topology, see below)
@@ -76,11 +69,32 @@ forget them:
   done, `.github/workflows/ci.yml`: pytest for both lab projects, ruff,
   yamllint, ansible-lint, gitleaks. Markdown lint deferred, everything
   else in v1.
-- Containerized dev environment
+- ~~Containerized dev environment~~ done, `Dockerfile` +
+  `docker-build-collector` CI job for network-inventory-collector.
 - Infra monitoring dashboard
 - Credential management examples (vault, secret managers)
 
-Future tech to poke at: Kubernetes, NetBox, RAG, local LLMs.
+Future tech to poke at: NetBox, RAG, local LLMs.
+
+---
+
+## Next up: platform/IaC track
+
+Decided order, each step builds on the last:
+
+1. **Terraform for Proxmox** — replace manual VM creation on the NUC
+   with `.tf` files (`bpg/proxmox` provider), real plan/apply/state
+   workflow.
+2. **Kubernetes (k3s)** — deploy the collector as a real CronJob
+   (Secret for creds, PersistentVolume for `output/`) instead of a
+   generic hello-world pod. Terraform provisions the VM(s) it runs on.
+3. **CD** — CI already builds the image; push it to GHCR on merge,
+   Argo CD or Flux watches the cluster and auto-deploys new tags.
+   GitOps, not just CI.
+4. **Cloud** — last on purpose, costs money if left running and the
+   Terraform skill transfers directly once learned locally. First real
+   tie-in: give config-backup-system an actual off-site destination
+   (S3 via Terraform) instead of local-disk-only backups.
 
 ---
 
