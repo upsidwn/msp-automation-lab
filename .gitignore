@@ -14,6 +14,18 @@ venv/
 # OS junk
 .DS_Store
 
+# Terraform - local state and provider cache, never commit (state
+# holds resource details/IPs, .terraform/ is machine-specific plugin
+# cache). *.tfvars can hold real values same as .env. Lock file stays
+# committed on purpose, pins provider versions for reproducibility.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
 # Collector output - real device data (serials, IPs, etc), never commit.
 # Wildcarded, not extension-specific: diagram.py's .png and
 # config-backup-system's timestamped files already showed one-extension-
