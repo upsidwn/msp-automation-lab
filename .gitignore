@@ -53,3 +53,8 @@ production/*/source/group_vars/*/vault.*
 !production/*/source/group_vars/*/vault.*.example
 production/*/source/host_vars/*/vault.*
 !production/*/source/host_vars/*/vault.*.example
+
+# Kubernetes Secret manifests hold real credentials in plaintext
+# (stringData), same risk class as .env - never commit real values.
+lab/*/k8s/secret.yaml
+production/*/k8s/secret.yaml

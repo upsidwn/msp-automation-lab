@@ -82,9 +82,9 @@ Future tech to poke at: NetBox, RAG, local LLMs.
 
 Decided order, each step builds on the last:
 
-1. **Terraform for Proxmox** — replace manual VM creation on the NUC
-   with `.tf` files (`bpg/proxmox` provider), real plan/apply/state
-   workflow.
+1. ~~Terraform for Proxmox~~ done, `infra/proxmox/`: scoped API token,
+   cloud-init template (not per-VM ISO installs), `learning_vm`
+   resource confirmed live through a full destroy/apply cycle.
 2. **Kubernetes (k3s)** — deploy the collector as a real CronJob
    (Secret for creds, PersistentVolume for `output/`) instead of a
    generic hello-world pod. Terraform provisions the VM(s) it runs on.

@@ -1,0 +1,32 @@
+# Runs auto-discover on a schedule instead of a manual `docker run`.
+# Overrides the image's own ENTRYPOINT (menu.py, interactive - not
+# usable unattended) to call discover.py directly against the home
+# LAN CIDR used throughout this project's live testing.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: collector-discover
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            fsGroup: 1000
+          containers:
+            - name: collector
+              image: network-inventory-collector:latest
+              imagePullPolicy: Never
+              command: ["python", "source/discover.py", "172.30.1.0/24"]
+              envFrom:
+                - secretRef:
+                    name: collector-creds
+              volumeMounts:
+                - name: output
+                  mountPath: /app/output
+          volumes:
+            - name: output
+              persistentVolumeClaim:
+                claimName: collector-output
+          restartPolicy: Never
