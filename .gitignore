@@ -53,3 +53,9 @@ production/*/source/group_vars/*/vault.*
 !production/*/source/group_vars/*/vault.*.example
 production/*/source/host_vars/*/vault.*
 !production/*/source/host_vars/*/vault.*.example
+
+# Kubernetes Secret manifests hold real credentials in plaintext
+# (stringData), same risk class as .env - never commit real values.
+# ** not * : a single * doesn't cross / boundaries in gitignore, so it
+# wouldn't survive the k8s/ dir ever nesting deeper than it is now.
+**/k8s/secret.yaml

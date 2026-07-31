@@ -1,0 +1,41 @@
+# Runs auto-discover on a schedule instead of a manual `docker run`.
+# Overrides the image's own ENTRYPOINT (menu.py, interactive - not
+# usable unattended) to call discover.py directly. Scan CIDR comes
+# from the Secret (NIC_SCAN_CIDR), not hardcoded here - real network
+# layout has no reason to live in a manifest committed to a public repo.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: collector-discover
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          hostNetwork: true
+          dnsPolicy: ClusterFirstWithHostNet
+          securityContext:
+            fsGroup: 1000
+          containers:
+            - name: collector
+              image: network-inventory-collector:latest
+              imagePullPolicy: Never
+              command: ["python", "source/discover.py", "$(NIC_SCAN_CIDR)"]
+              env:
+                - name: NIC_SCAN_CIDR
+                  valueFrom:
+                    secretKeyRef:
+                      name: collector-creds
+                      key: NIC_SCAN_CIDR
+              envFrom:
+                - secretRef:
+                    name: collector-creds
+              volumeMounts:
+                - name: output
+                  mountPath: /app/output
+          volumes:
+            - name: output
+              persistentVolumeClaim:
+                claimName: collector-output
+          restartPolicy: Never

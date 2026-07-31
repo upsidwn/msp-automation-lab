@@ -1,0 +1,14 @@
+# Persists output/ across CronJob runs. local-path is k3s's built-in
+# dynamic provisioner (hostPath-backed) - no manual PersistentVolume
+# needed, the PVC alone triggers it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: collector-output
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi

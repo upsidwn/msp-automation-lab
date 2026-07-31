@@ -31,8 +31,12 @@ terraform init
 
 ## Status
 
-Provider auth, cloud-init template, and the `learning_vm` resource
-(`tf-learning-01`) all confirmed live: full `destroy` + `apply` cycle
-rebuilds the VM from scratch with a real IP reported back on the first
-apply, no manual steps. See design-notes.md for what it took to get
-there.
+Provider auth and the cloud-init template both confirmed live: full
+`destroy` + `apply` cycle rebuilds a VM from scratch with a real IP
+reported back on the first apply, no manual steps. See design-notes.md
+for what it took to get there.
+
+The VM resource itself started as a throwaway `learning_vm`
+(`tf-learning-01`), later repurposed into `k3s_node` (`k3s-01`, see
+`vm.tf`) once it needed a real purpose - the k3s cluster the
+collector's CronJob runs on.
