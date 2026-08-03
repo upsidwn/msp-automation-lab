@@ -86,9 +86,10 @@ Decided order, each step builds on the last:
    cloud-init template (not per-VM ISO installs), VM resource
    confirmed live through a full destroy/apply cycle. Later repurposed
    into the k3s node below.
-2. **Kubernetes (k3s)** — deploy the collector as a real CronJob
-   (Secret for creds, PersistentVolume for `output/`) instead of a
-   generic hello-world pod. Terraform provisions the VM(s) it runs on.
+2. ~~Kubernetes (k3s)~~ done, `lab/network-inventory-collector/k8s/`:
+   collector runs as a real CronJob (Secret for creds, PersistentVolume
+   for `output/`), on the Terraform-provisioned VM repurposed as the
+   k3s node. Confirmed live, real devices identified on a scheduled run.
 3. **CD** — CI already builds the image; push it to GHCR on merge,
    Argo CD or Flux watches the cluster and auto-deploys new tags.
    GitOps, not just CI.
