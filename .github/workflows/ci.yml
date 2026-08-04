@@ -107,3 +107,52 @@ jobs:
             exit 1
           fi
           echo "Container correctly runs as: $actual_user"
+      - name: Save image for push-collector-image
+        run: docker save network-inventory-collector:ci -o /tmp/network-inventory-collector.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: network-inventory-collector-image
+          path: /tmp/network-inventory-collector.tar
+
+  push-collector-image:
+    # Only publish once everything else in CI has actually passed -
+    # a leaked secret or a failing test should never still result in
+    # a published image. Reuses the exact image docker-build-collector
+    # already built and verified non-root, rather than rebuilding from
+    # scratch, so what's pushed is guaranteed to be what was checked.
+    needs:
+      - test-collector
+      - test-config-backup
+      - lint-python
+      - lint-yaml
+      - lint-ansible
+      - secret-scan
+      - docker-build-collector
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: network-inventory-collector-image
+          path: /tmp
+      - name: Load the verified image
+        run: docker load -i /tmp/network-inventory-collector.tar
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
+      - name: Tag and push image
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
+          short_sha=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          image="ghcr.io/${owner}/network-inventory-collector"
+          docker tag network-inventory-collector:ci "${image}:latest"
+          docker tag network-inventory-collector:ci "${image}:sha-${short_sha}"
+          docker push "${image}:latest"
+          docker push "${image}:sha-${short_sha}"
