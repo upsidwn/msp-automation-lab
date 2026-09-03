@@ -338,3 +338,79 @@ live-confirmed. The only open thread is confirming the
 `ansible_command_timeout` fix on a future real change, whenever one
 happens to come up naturally - not worth manufacturing a throwaway
 change just to test a timeout value.
+
+## Drift detection: diff against a real baseline, not a rules file
+
+First design considered was rule-based compliance (a small YAML file
+of generic hardening rules - telnet disabled, SSH enabled, that kind
+of thing - checked against the running config, same shape as
+`known_good_firmware.json`'s vendor/version allowlist in the
+collector). Rejected before writing any code: it would mean guessing
+at generic EXOS security rules from memory, the same trap that already
+cost two rounds of trial-and-error on `configure_vlan.yml`'s command
+syntax, except now against read-heavy checks with less signal that a
+guess was wrong (a rule silently reporting "compliant" for the wrong
+reason is worse than a command failing loudly).
+
+The actual chosen design is simpler and more honest about what it's
+checking: `set_baseline.yml` snapshots the current running config as
+the literal reference point, `check_drift.yml` diffs future runs
+against that exact snapshot with real `diff -u`, not a reimplemented
+text-diff. This answers "does this device still match what it matched
+before," not "does this device match some generic idea of what's
+correct" - a narrower, more honest claim, and one that needs zero
+assumptions about EXOS-specific hardening conventions to build.
+
+The one thing this design required resolving: a real baseline is a
+real full device config, same sensitivity as anything in `output/`.
+Storing it in `known_good/` and gitignoring that directory the same
+way (see root `.gitignore`) means the baseline never needs to be
+committed at all, unlike a rules file, which would have needed to be
+public by definition (the rules ARE the compliance policy, and they'd
+have to be generic/non-device-specific to be safe to commit anyway -
+another point against that design, it couldn't have captured anything
+about this switch's actual configuration regardless).
+
+**Guarding against silently masking drift**: `set_baseline.yml`
+refuses to run without `-e confirm_baseline_update=true`. Without that
+guard, running it out of habit (the same way `backup.yml` gets run
+routinely) would quietly overwrite the one thing that makes drift
+detection meaningful - the reference point - potentially erasing
+evidence of a change that should have been investigated first.
+
+**diff's own exit codes, not a custom drift flag**: `check_drift.yml`
+treats `diff -u`'s exit code 1 (differences found) as the normal,
+expected "drift found" outcome, not a task failure - `failed_when:
+drift_result.rc not in [0, 1]` only fails on a real diff error (2+,
+e.g. a genuinely unreadable file). This is the same reasoning
+`backup.yml`'s EXOS play already applied once, real device output
+gets written by hand rather than reaching for a module option that
+doesn't exist for this vendor; here it's "reach for the real Unix
+tool that already solves text diffing" instead of writing one.
+
+## Live run confirmed (set_baseline.yml + check_drift.yml, no-drift case)
+
+Two full cycles against the real EXOS switch: `set_baseline.yml` then
+`check_drift.yml`, twice in a row. Both `check_drift.yml` runs
+correctly reported `"lab-switch-2: no drift, matches baseline"` - the
+happy path is real, not just structurally valid. The second
+`set_baseline.yml` run is worth calling out specifically: `Save it as
+the baseline` reported `ok`, not `changed` - `ansible.builtin.copy`
+did its own content comparison against the existing baseline file and
+correctly recognized the freshly-pulled `show config` output as
+byte-identical, no rewrite needed. That's the same underlying
+comparison mechanism (`ansible.builtin.copy`'s built-in diffing)
+`check_drift.yml`'s own approach implicitly leans on being sound, so
+it's real (if indirect) evidence for the whole mechanism, not just the
+no-drift branch.
+
+**Still not exercised**: the actual `rc == 1` branch - a real detected
+difference. Lower-risk gap than it might sound: nothing in that branch
+is EXOS-specific or newly-guessed syntax (the trap that bit
+`configure_vlan.yml` twice) - it's just `diff -u`'s completely
+standard, well-understood exit-code behavior on two local text files,
+same mechanism already proven to correctly recognize "identical" in
+both directions above. Worth confirming for real eventually (a small
+throwaway change on the device, `check_drift.yml`, then either revert
+the change or re-baseline), just not urgent given how standard the
+untested part actually is.

@@ -1,0 +1,45 @@
+---
+# Pulls the current running config and saves it as the "known good"
+# baseline check_drift.yml compares future runs against. Deliberately
+# separate from backup.yml - a timestamped backup and a designated
+# baseline are different things, this one gets overwritten on purpose
+# every time it runs, backups never do.
+#
+# Guarded behind an explicit confirm flag: overwriting the baseline is
+# how real drift would get silently masked (re-baseline over
+# unnoticed changes and check_drift.yml stops seeing them), so this
+# refuses to run without -e confirm_baseline_update=true.
+#
+#   ansible-playbook set_baseline.yml --limit exos --ask-vault-pass \
+#     -e confirm_baseline_update=true
+- name: Save the current EXOS running config as the drift-detection baseline
+  hosts: exos
+  gather_facts: false
+
+  tasks:
+    - name: Refuse to overwrite the baseline without an explicit confirmation
+      ansible.builtin.fail:
+        msg: >-
+          This overwrites the known-good baseline for {{ inventory_hostname }}.
+          Re-run with -e confirm_baseline_update=true once you've verified
+          the current config is actually what you want as the new baseline.
+      when: not (confirm_baseline_update | default(false) | bool)
+
+    - name: Make sure the known_good directory exists (git doesn't track empty folders)
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../known_good"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Pull the current running config
+      ansible.netcommon.cli_command:
+        command: show config
+      register: current_config
+
+    - name: Save it as the baseline (overwrites any existing baseline for this host)
+      ansible.builtin.copy:
+        content: "{{ current_config.stdout }}"
+        dest: "{{ playbook_dir }}/../known_good/{{ inventory_hostname }}_config.golden"
+        mode: "0644"
+      delegate_to: localhost
