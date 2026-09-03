@@ -6,11 +6,35 @@ to timestamped local files. First real use of Ansible in this repo, the
 inventory collector uses Python/Netmiko directly instead (see
 [lab/network-inventory-collector](../network-inventory-collector)).
 
+Also now has a second, EXOS-only playbook that actually pushes config
+changes (`configure_vlan.yml`), not just reads it. See below.
+
 ## What it does
 
-Connects to each device (netconf for Junos, SSH/CLI for EXOS) and saves
-its running config to `output/`, one timestamped file per run.
-Read-only against the device, no config changes ever get pushed.
+`backup.yml` connects to each device (netconf for Junos, SSH/CLI for
+EXOS) and saves its running config to `output/`, one timestamped file
+per run. Read-only against the device, no config changes ever get
+pushed.
+
+`configure_vlan.yml` (EXOS only) is the opposite: it creates a VLAN and
+tags it to a port. Idempotent (no EXOS resource-module collection
+exists to do this the `junos_vlans`-style way): `configure vlan ...
+tag ...` and `... add ports ... tagged` go through `ansible.netcommon.
+cli_config`, which diffs against the running config, while `create
+vlan` is hand-rolled idempotent since it's a one-shot action `cli_config`
+can't diff (confirmed live, see
+[documentation/design-notes.md](documentation/design-notes.md) for
+why). Takes before/after `show vlan` snapshots to `output/`, and fails
+loud if the port doesn't actually land in the VLAN. `vlan_port`'s
+format isn't fixed across EXOS hardware, check `show ports information`
+on the real device rather than assuming (a standalone switch takes a
+plain port number, stacked/modular hardware may need `slot:port`).
+Run with `--check --diff` first:
+
+```
+ansible-playbook configure_vlan.yml --limit exos --ask-vault-pass \
+  -e vlan_name=test100 -e vlan_id=100 -e vlan_port=20 --check --diff
+```
 
 ## Setup
 
@@ -76,10 +100,12 @@ for the actual tool choices made and why.
 - `source/group_vars/junos/vault.yml.example`: placeholder credential vars, encrypt after filling in
 - `source/group_vars/exos/vars.yml`: connection vars for the exos group (network_cli, network_os)
 - `source/group_vars/exos/vault.yml.example`: placeholder credential vars, encrypt after filling in
-- `source/backup.yml`: the playbook, one play per vendor
+- `source/backup.yml`: the read-only backup playbook, one play per vendor
+- `source/configure_vlan.yml`: EXOS-only, pushes a real VLAN/port config change, idempotent via `cli_config`
 - `source/dynamic_inventory.py`: alternative inventory source, reads `discover.py`'s output instead of a static file
-- `output/`: where backups land, gitignored (real device configs)
+- `output/`: where backups and configure_vlan's before/after snapshots land, gitignored (real device configs)
 - `tests/test_playbook.py`: validates the example files' YAML shape, runs `ansible-playbook --syntax-check`
+- `tests/test_configure_vlan.py`: same, for `configure_vlan.yml`
 - `tests/test_dynamic_inventory.py`: validates the bridge script's output, including a real subprocess run
 
 ## Status
@@ -88,6 +114,7 @@ for the actual tool choices made and why.
 - [x] Run live against the real Junos lab switch, confirmed working
 - [x] Run live against the real EXOS lab switch, confirmed working
 - [x] Dynamic inventory from `discover.py`'s output, confirmed working via `ansible-inventory`
+- [x] `configure_vlan.yml`: run live against the real EXOS switch, both a real change and a real idempotent no-op confirmed working (see design-notes.md for the two real bugs found and fixed along the way - hand-rolled `create vlan` idempotency, and a `save configuration` timeout)
 
 ## Notes
 
