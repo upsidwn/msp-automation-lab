@@ -1,0 +1,126 @@
+---
+# Idempotent VLAN + port-tag change for the EXOS group. Kept separate
+# from backup.yml on purpose - that playbook is read-only and safe to
+# run unattended, this one changes device state, different blast
+# radius, shouldn't share a file.
+#
+# EXOS has no maintained resource-module collection (see
+# documentation/design-notes.md), so there's no junos_vlans-style
+# module that understands "desired state" on its own. Confirmed live:
+# ansible.netcommon.cli_config handles the tag/port-membership lines
+# correctly (evaluates the device's current config, only pushes what's
+# missing), but NOT the VLAN's own creation - "create vlan" is a
+# one-shot action, not a declarative line the running config reflects
+# back, so cli_config re-sends it every run and the device rejects the
+# duplicate on anything after the first. That one line is hand-rolled
+# idempotent instead (checked against the pre-change snapshot below),
+# same fallback design-notes.md called out as the honest answer if
+# cli_config didn't fully cover this.
+#
+# vlan_name / vlan_id / vlan_port are required extra-vars, e.g.:
+#   ansible-playbook configure_vlan.yml --limit exos --ask-vault-pass \
+#     -e vlan_name=test100 -e vlan_id=100 -e vlan_port=20 --check --diff
+# vlan_port's format depends on your switch, confirmed live it's not
+# fixed across EXOS hardware: a standalone unit takes a plain port
+# number (e.g. "20"), stacked/modular hardware may need "slot:port"
+# (e.g. "1:20") instead. Check `show ports information` on the actual
+# device rather than assuming.
+- name: Configure a VLAN and tag it to a port on EXOS
+  hosts: exos
+  gather_facts: false
+
+  tasks:
+    - name: Make sure the output directory exists (git doesn't track empty folders)
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../output"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Snapshot VLAN state before the change
+      ansible.netcommon.cli_command:
+        command: show vlan
+      register: pre_change_vlans
+
+    - name: Save the pre-change snapshot
+      ansible.builtin.copy:
+        content: "{{ pre_change_vlans.stdout }}"
+        dest: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_prechange.{{ '%Y-%m-%d@%H:%M:%S' | strftime }}"
+        mode: "0644"
+      delegate_to: localhost
+
+    - name: Check whether the VLAN already exists
+      # create vlan is a one-shot action, not a declarative line, so it
+      # doesn't show up verbatim in the running config the way
+      # "configure vlan ... tag ..." does - confirmed live that
+      # cli_config re-sends it every run regardless, and the device
+      # correctly rejects the duplicate ("Name already in use") on any
+      # run after the first. Hand-rolled idempotency instead: check the
+      # snapshot already pulled above, only issue the create command
+      # when the name genuinely isn't present yet.
+      ansible.builtin.set_fact:
+        vlan_already_exists: "{{ vlan_name in pre_change_vlans.stdout }}"
+
+    - name: Create the VLAN if it doesn't already exist
+      ansible.netcommon.cli_command:
+        command: "create vlan {{ vlan_name }}"
+      when: not vlan_already_exists and not ansible_check_mode
+      notify: Persist the change
+
+    - name: Note what create would do under --check (cli_command can't actually preview a non-show command in check mode)
+      ansible.builtin.debug:
+        msg: "Would run: create vlan {{ vlan_name }}"
+      when: not vlan_already_exists and ansible_check_mode
+
+    - name: Push the tag + port-tag config (no-op if already correct)
+      ansible.netcommon.cli_config:
+        config: |
+          configure vlan {{ vlan_name }} tag {{ vlan_id }}
+          configure vlan {{ vlan_name }} add ports {{ vlan_port }} tagged
+      notify: Persist the change
+
+    - name: Flush handlers now, the save has to happen before the verification snapshot below
+      ansible.builtin.meta: flush_handlers
+
+    - name: Snapshot VLAN state after the change
+      # Skipped under --check: cli_config never actually pushed anything
+      # in check mode, so "after" would just be a copy of "before" - not
+      # useful, and the assert below would fail for the wrong reason
+      # (nothing changed, not "something's broken").
+      ansible.netcommon.cli_command:
+        command: "show vlan {{ vlan_name }}"
+      register: post_change_vlan
+      when: not ansible_check_mode
+
+    - name: Save the post-change snapshot
+      ansible.builtin.copy:
+        content: "{{ post_change_vlan.stdout }}"
+        dest: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_postchange.{{ '%Y-%m-%d@%H:%M:%S' | strftime }}"
+        mode: "0644"
+      delegate_to: localhost
+      when: not ansible_check_mode
+
+    - name: Fail loud if the port never actually landed in the VLAN
+      ansible.builtin.assert:
+        that:
+          - vlan_port in post_change_vlan.stdout
+        fail_msg: >-
+          Expected port {{ vlan_port }} to be tagged into VLAN
+          {{ vlan_name }} after the change, but it's not showing up in
+          'show vlan {{ vlan_name }}'. Something didn't take.
+        success_msg: "Confirmed: port {{ vlan_port }} is tagged into VLAN {{ vlan_name }}"
+      when: not ansible_check_mode
+
+  handlers:
+    - name: Persist the change
+      # EXOS doesn't auto-save config like Junos commit does, and this
+      # only fires (via notify) when cli_config actually changed
+      # something - a no-op run never touches non-volatile storage.
+      # Guarded against check mode too: cli_command only allows "show"
+      # commands to actually run under --check (confirmed live - it
+      # errors loud, "Only show commands are supported when using
+      # check_mode"), and check mode never really applied the config
+      # above anyway, so there'd be nothing real to persist.
+      ansible.netcommon.cli_command:
+        command: save configuration
+      when: not ansible_check_mode

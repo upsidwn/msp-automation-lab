@@ -2,3 +2,9 @@ ansible_connection: ansible.netcommon.network_cli
 ansible_network_os: community.network.exos
 ansible_user: "{{ vault_exos_user }}"
 ansible_password: "{{ vault_exos_password }}"
+# network_cli's default is 30s - confirmed live that's too short for this
+# switch's "save configuration" (flash write), which timed out at the
+# default during configure_vlan.yml's first real run. Not yet re-confirmed
+# whether 60s is actually enough, next real change through configure_vlan.yml
+# will prove it one way or the other.
+ansible_command_timeout: 60
