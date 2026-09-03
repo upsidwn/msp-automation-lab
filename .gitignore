@@ -33,6 +33,12 @@ crash.*.log
 lab/*/output/*
 production/*/output/*
 
+# Drift-detection baselines (config-backup-system's check_drift.yml) -
+# a real device's full running config, same risk class as output/,
+# never commit even as a "known good" reference.
+lab/*/known_good/*
+production/*/known_good/*
+
 # Local device lists for run.py --devices-file (real IPs), never commit
 lab/*/devices/
 production/*/devices/
