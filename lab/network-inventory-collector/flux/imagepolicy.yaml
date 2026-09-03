@@ -1,0 +1,19 @@
+# Picks the newest image by the CI run number baked into the
+# :build-<N> tag (see .github/workflows/ci.yml) - not :latest (a fixed
+# name can't be ranked as "newest") and not the sha- tags (hex doesn't
+# sort chronologically). Run numbers only ever increase, so numerical/
+# ascending order reliably picks the most recent build.
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: collector-image-policy
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: collector-image-repo
+  policy:
+    numerical:
+      order: asc
+  filterTags:
+    pattern: '^build-(?P<num>[0-9]+)$'
+    extract: '$num'

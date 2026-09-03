@@ -1,0 +1,15 @@
+# Watches ghcr.io for new tags of the collector image. Assumes the
+# GHCR package is public - GitHub Actions-published packages default
+# to private regardless of the repo's own visibility, so this is a
+# live check/fix (Packages -> network-inventory-collector -> Package
+# settings -> Change visibility), not something this file can control.
+# If it has to stay private, add a secretRef here pointing at a
+# read-only pull-token Secret instead.
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: collector-image-repo
+  namespace: flux-system
+spec:
+  image: ghcr.io/upsidwn/network-inventory-collector
+  interval: 5m

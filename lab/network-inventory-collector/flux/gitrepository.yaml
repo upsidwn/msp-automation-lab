@@ -1,0 +1,16 @@
+# Uses SSH + a deploy key (not a plain HTTPS read-only clone) because
+# ImageUpdateAutomation needs to push commits back to this repo when
+# it bumps the image tag, not just read from it. The deploy key and
+# its Secret are a live, manual setup step - see flux/README.md.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: msp-automation-lab
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: ssh://git@github.com/upsidwn/msp-automation-lab
+  ref:
+    branch: main
+  secretRef:
+    name: flux-git-deploy-key

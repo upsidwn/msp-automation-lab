@@ -1,0 +1,34 @@
+# The actual automation loop: when ImagePolicy picks a newer build,
+# this edits cronjob.yaml's image tag in a real git clone and pushes
+# the commit back to main via the GitRepository's write-capable deploy
+# key - a real commit shows up in this repo's history, not just a
+# cluster-side change. apiVersion here is worth double-checking against
+# whatever Flux version actually gets installed (flux check), this
+# CRD group has moved versions before.
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: collector-image-automation
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: msp-automation-lab
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@users.noreply.github.com
+        name: fluxcdbot
+      messageTemplate: |
+        auto: bump collector image
+
+        {{range .Updated.Images}}{{println .}}{{end}}
+    push:
+      branch: main
+  update:
+    path: ./lab/network-inventory-collector/k8s
+    strategy: Setters

@@ -1,0 +1,9 @@
+# Explicit resource list, not a bare directory glob - secret.yaml.example
+# is a template, not meant to be applied, and the real secret.yaml
+# isn't in git at all (stays manually managed, out of Flux's reach
+# on purpose, see flux/README.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - pvc.yaml
+  - cronjob.yaml

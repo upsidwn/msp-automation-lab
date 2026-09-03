@@ -148,11 +148,14 @@ jobs:
       - name: Tag and push image
         env:
           OWNER: ${{ github.repository_owner }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           owner=$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')
           short_sha=$(echo "${GITHUB_SHA}" | cut -c1-7)
           image="ghcr.io/${owner}/network-inventory-collector"
           docker tag network-inventory-collector:ci "${image}:latest"
           docker tag network-inventory-collector:ci "${image}:sha-${short_sha}"
+          docker tag network-inventory-collector:ci "${image}:build-${RUN_NUMBER}"
           docker push "${image}:latest"
           docker push "${image}:sha-${short_sha}"
+          docker push "${image}:build-${RUN_NUMBER}"

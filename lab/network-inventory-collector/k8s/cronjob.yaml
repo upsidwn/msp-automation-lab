@@ -3,6 +3,10 @@
 # usable unattended) to call discover.py directly. Scan CIDR comes
 # from the Secret (NIC_SCAN_CIDR), not hardcoded here - real network
 # layout has no reason to live in a manifest committed to a public repo.
+#
+# Pulls from GHCR now instead of the old docker-save/k3s-ctr-import
+# workflow (see design-notes.md) - CI pushes a new image on every
+# merge to main, Flux picks up new tags automatically, see flux/.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -19,8 +23,11 @@ spec:
             fsGroup: 1000
           containers:
             - name: collector
-              image: network-inventory-collector:latest
-              imagePullPolicy: Never
+              # Flux's image-automation controller rewrites this tag
+              # directly and commits the change back to git - the
+              # marker comment below is how it finds this line.
+              image: ghcr.io/upsidwn/network-inventory-collector:build-1 # {"$imagepolicy": "flux-system:collector-image-policy"}
+              imagePullPolicy: IfNotPresent
               command: ["python", "source/discover.py", "$(NIC_SCAN_CIDR)"]
               env:
                 - name: NIC_SCAN_CIDR

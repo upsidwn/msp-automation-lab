@@ -1,0 +1,17 @@
+# Flux's own Kustomization CRD (not the plain kustomize.config.k8s.io
+# file in k8s/ - confusingly, both are called "Kustomization"). Tells
+# Flux to reconcile lab/network-inventory-collector/k8s/ from the
+# GitRepository source, applying pvc.yaml and cronjob.yaml.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: collector-deploy
+  namespace: flux-system
+spec:
+  interval: 5m
+  sourceRef:
+    kind: GitRepository
+    name: msp-automation-lab
+  path: ./lab/network-inventory-collector/k8s
+  prune: true
+  targetNamespace: default
